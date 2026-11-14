@@ -1,16 +1,20 @@
 # MaeMorKratai Center
 
-Monorepo ของแม่หมอกระต่าย แบ่งเป็น 5 โฟลเดอร์
+Monorepo for MaeMorKratai (แม่หมอกระต่าย), a Thai tarot reading website and its admin tools.
 
-| โฟลเดอร์ | เจ้าของ | หน้าที่ |
+| Folder | Owner | Purpose |
 |---|---|---|
-| `frontend-client/` | Frontend | เว็บดูดวงแม่หมอ (ลูกค้า) — pure UI |
-| `frontend-admin/` | Frontend | Dashboard: ภาพรวมเว็บ, ดูดไอเดียคลิปคู่แข่ง, สั่งงาน content automation |
-| `docs/` | ทั้งคู่ | สัญญา API (OpenAPI) + บันทึกการตัดสินใจ — คุยกันที่นี่ |
-| `backend-client/` | Backend | API สำหรับเว็บลูกค้า |
-| `backend-admin/` | Backend | API สำหรับ dashboard |
+| [`frontend-client/`](frontend-client) | Frontend | Customer tarot website. Pure UI, no backend yet. |
+| [`frontend-admin/`](frontend-admin) | Frontend | Admin dashboard: site overview, competitor clip research, content automation control. |
+| [`docs/`](docs) | Both | API contracts (OpenAPI) and decision records. The shared meeting point. |
+| [`backend-client/`](backend-client) | Backend | API for the customer website. |
+| [`backend-admin/`](backend-admin) | Backend | API for the admin dashboard. |
 
-## กติกา
-- frontend ↔ backend คุยกันผ่าน API ที่เขียนไว้ใน `docs/api/` เท่านั้น ห้าม import โค้ดข้ามโฟลเดอร์
-- แก้งานใน branch ของตัวเอง แล้วเปิด PR เข้า `main`
-- เปลี่ยนสัญญา API → แก้ `docs/api/` ใน PR แยก ให้อีกฝั่ง approve ก่อน
+## Rules
+
+- Frontend and backend talk only through the API contracts in [`docs/api/`](docs/api). Never import code across folders.
+- Work on your own branch and open a pull request into `main`.
+- To change an API contract, edit `docs/api/` in its own pull request and get approval from the other side before writing code.
+- Never commit secrets. `.env*` files are ignored; commit a `.env.example` with placeholder values instead.
+
+The content automation program runs only on the frontend owner's machine and talks to the backend through the admin API.

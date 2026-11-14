@@ -1,16 +1,17 @@
-# ขนาดภาพไพ่ — 2026-11-05
+# Card image sizes
 
-ตรวจไฟล์ที่ใช้งานจริง 74 ใบ; ยังไม่มีภาพ 4 ใบ. ขนาดต้นทางใช้ manifest ของภาพที่นำเข้า ส่วนขนาดบนเว็บวัดจากไฟล์ WebP จริงด้วย sharp.
+Measured on 2026-11-05. 74 of 78 cards have art; 4 are still missing.
 
-ชุดหลักต้นทาง 70 ใบ: 637×1024 พิกเซล. ชุดหลักบนเว็บ 73 ใบ: 600×965 พิกเซล.
+- Source images (main set, 70 cards): 637 × 1024 px.
+- Web images (`public/cards/v3/*.webp`, 73 cards): 600 × 965 px.
 
-| ไพ่ที่ขนาดต้นทางต่างจากชุดหลัก | ต้นทาง (กว้าง×สูง) | บนเว็บ (กว้าง×สูง) | หมายเหตุ |
+| Card with a different source size | Source (w × h) | Web (w × h) | Note |
 |---|---|---|---|
-| The Magician | 687×1024 | 600×894 | สัดส่วนกว้างกว่าใบอื่น |
-| Five of Wands | 1632×2624 | 600×965 | ความละเอียดสูงกว่า แต่สัดส่วนใกล้เคียงชุดหลัก |
-| Four of Pentacles | 1632×2624 | 600×965 | ความละเอียดสูงกว่า แต่สัดส่วนใกล้เคียงชุดหลัก |
-| Seven of Pentacles | 1632×2624 | 600×965 | ความละเอียดสูงกว่า แต่สัดส่วนใกล้เคียงชุดหลัก |
+| The Magician | 687 × 1024 | 600 × 894 | Wider aspect ratio than the rest |
+| Five of Wands | 1632 × 2624 | 600 × 965 | Higher resolution, same aspect ratio |
+| Four of Pentacles | 1632 × 2624 | 600 × 965 | Higher resolution, same aspect ratio |
+| Seven of Pentacles | 1632 × 2624 | 600 × 965 | Higher resolution, same aspect ratio |
 
-ไม่มีภาพ: Six of Wands, Nine of Wands, Page of Pentacles, King of Pentacles.
+Missing art: Six of Wands, Nine of Wands, Page of Pentacles, King of Pentacles.
 
-The World, Eight of Pentacles และ Ten of Cups ในภาพแจ้งปัญหา มีขนาดเท่าชุดหลัก. แก้ CSS เอาเส้นขอบเสริมออกและให้กรอบใช้ขนาด WebP จริง; ไม่ครอปหรือแก้ต้นฉบับ. รายละเอียดครบทุกใบอยู่ใน [JSON](CARD_DIMENSIONS_20261105.json).
+The card frame uses the real WebP size. Do not crop or edit the source images to make them match.

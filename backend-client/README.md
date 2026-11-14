@@ -1,4 +1,5 @@
 # backend-client
 
-API สำหรับเว็บลูกค้า (`frontend-client`) — สัญญา API อยู่ที่ `docs/api/client/`
-ยังว่าง — รอฝั่ง backend เลือก stack
+API for the customer website ([`frontend-client`](../frontend-client)). Contract: [`docs/api/client/`](../docs/api/client).
+
+Status: empty. Waiting for the backend owner to choose a stack.

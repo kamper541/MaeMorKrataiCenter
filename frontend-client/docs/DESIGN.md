@@ -1,17 +1,35 @@
-# แม่หมอกระต่าย — ห้องไพ่ใต้แสงจันทร์
-Use the approved Halloween illustration and animated mascot as the central visual. Quiet violet-black backgrounds, soft lavender light, warm cream typography, pumpkin-orange accents. Keep room and familiar character proportions. Card art uses the untouched raster mascot in five distinct SVG illustrated environments with fine grain; no AI redraw. Artwork and GSAP motion are separate from card meanings.
+# Design
 
-Palette:#1c102c,#482451,#a77bbe,#ef9858,#fff0cf.
-Typography:Georgia for Latin wordmark; system Thai sans-serif for UI, generous line height. No redistribution of system fonts in the website.
-Desktop:editorial two-column welcome, large framed animated room on right, draw action on left. Mobile:short intro, room, action, result, five-card gallery. Decorative thin gold borders/stars, no dashboard widgets.
-Interactions:choose one of six relationship contexts, click draw, shuffle/lift/flip, reveal matching card and source-backed meaning. Disable repeat clicks while dealing. Keyboard access, reduced-motion path, responsive gallery and source links.
-Prototype:5illustrated cards from a recorded random sample;78source cards live in the Obsidian knowledge base. No account/payment/API/analytics in this public prototype. Static Next.js export for later Hostinger upload; no deployment now.
+Theme: MaeMorKratai's tarot room under the moonlight. The animated rabbit fortune teller is the central visual.
 
-## Generated deck reveal — 2026-10-15
-Use the owner's five named JPEGs in wiki/Images/Cards byte-for-byte, complete at1632×2624. The two numbered images are brand scenes, not additional tarot identities. Replace displayed SVG pilot artwork with these JPEGs; preserve the old source artifacts.
-On draw: shuffle in the room → hold the matching generated card → carry it into a centered dialog with a soft ivory/peach halo and rounded mint/lavender stars. No strobe, neon or hard lens flare. Reveal duration about0.9s; close flips to the purple rabbit card back and returns to the hand. Reopening retains the same card/context. Below the dialog, a persistent reading includes all six source meanings. Modal focus trap, Escape, backdrop dismiss, background inert, safe mobile sizing and a fade-only reduced-motion path.
+## Look
 
+- Palette: `#1c102c` (violet-black), `#482451`, `#a77bbe` (lavender), `#ef9858` (peach/pumpkin accent), `#fff0cf` (cream text).
+- Type: Georgia for the Latin wordmark, the system Thai sans-serif for UI, generous line height. Do not bundle or redistribute system fonts.
+- Decoration: thin gold borders and stars. No dashboard-style widgets on the customer site.
+- No strobe, neon or hard lens flare.
 
-## Three-card room — 2026-10-16
+## Layout
 
-Separate /reading/ route. Reuse the approved purple/cream/peach palette, character.jpg and rabbit card-back.svg. Topic screen: calm conversation on the left, arched owner artwork and three card backs on the right; stacked on mobile. Table: mascot above the question, three fixed past/present/future slots, then a scrollable curved deck with shared grid alternative. Confirm a raised card before dealing. Deck motion uses 16 visual layers while selection uses all 78 unique identities. Gather the current shuffle pose before spreading. Three sequential flips precede the free demo unlock; owner meanings and synthesis review status remain explicit. No font downloads, no new AI imagery. Reduced motion is a full functional alternative.
+- Desktop: two-column welcome, large framed animated room on the right, draw action on the left.
+- Mobile: short intro, room, primary draw button, result.
+
+## Daily reading (`/`)
+
+1. The user picks one of six relationship contexts.
+2. Draw: the rabbit shuffles in the room, holds the drawn card, and the card moves into a centered dialog with a soft ivory/peach halo (about 0.9 s).
+3. Closing flips the card to the purple rabbit card back and returns it to the hand. Reopening keeps the same card and context.
+4. Below the dialog, the reading shows overview, work, money, love for the chosen context, a message, lucky colour and an affirmation.
+
+Repeat clicks are disabled while dealing.
+
+## Three-card spread (`/reading`)
+
+- Topic screen: conversation on the left, arched artwork with three card backs on the right; stacked on mobile.
+- Table: mascot above the question, three fixed slots (past, present, future), then a scrollable curved deck with a grid alternative.
+- The user confirms a raised card before it is dealt. The deck animation uses 16 visual layers; selection draws from all 78 unique cards.
+- Three sequential flips, then the free demo result.
+
+## Accessibility
+
+Keyboard access, modal focus trap, Escape and backdrop to close, inert background while the dialog is open, safe mobile sizing, and a full reduced-motion path (fade only).

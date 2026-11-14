@@ -1,12 +1,15 @@
 # docs
 
-ที่คุยกันระหว่าง frontend และ backend
+The shared space between frontend and backend.
 
-- `api/client/` — สัญญา API ของเว็บลูกค้า (แนะนำ OpenAPI `openapi.yaml`)
-- `api/admin/` — สัญญา API ของ dashboard
-- `decisions/` — บันทึกการตัดสินใจ ตั้งชื่อ `NNNN-ชื่อเรื่อง.md` (เช่น `0001-auth.md`)
+| Path | Contents |
+|---|---|
+| `api/client/` | API contract for the customer website. Use OpenAPI (`openapi.yaml`). |
+| `api/admin/` | API contract for the admin dashboard and content automation. |
+| `decisions/` | Decision records, named `NNNN-short-title.md` (for example `0001-auth.md`). |
 
-## วิธีทำงาน
-1. ใครต้องการ endpoint ใหม่/แก้ → เปิด branch + PR แก้ไฟล์ใน `api/`
-2. อีกฝั่ง review และ approve ก่อนเริ่มเขียนโค้ด
-3. merge แล้วถือเป็นสัญญา — frontend mock ตามนี้ได้เลย backend implement ตามนี้
+## Workflow
+
+1. Need a new or changed endpoint? Open a branch and a pull request that edits `api/`.
+2. The other side reviews and approves before anyone writes code.
+3. Once merged, the contract is final: frontend mocks against it, backend implements it.

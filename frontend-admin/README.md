@@ -1,6 +1,11 @@
 # frontend-admin
 
-Dashboard หลังบ้าน (ฝั่ง frontend): ภาพรวมเว็บ, ดูดไอเดียคลิปคู่แข่ง, สั่งงานโปรแกรมเจน content automation
-คุยกับ `backend-admin` ผ่าน API ใน `docs/api/admin/` เท่านั้น
+Admin dashboard (frontend side):
 
-ยังว่าง — ของเดิมที่อ้างอิงได้: `MaeMorKratai/services/social-center` (Next.js + FastAPI + SQLite)
+- Site overview
+- Competitor clip research (collect and review ideas from competitor videos)
+- Control panel for the content automation program
+
+Talks to [`backend-admin`](../backend-admin) only through the API in [`docs/api/admin/`](../docs/api/admin).
+
+Status: empty. Reference for the previous version: `MaeMorKratai/services/social-center` (Next.js + FastAPI + SQLite) in the old repo.
