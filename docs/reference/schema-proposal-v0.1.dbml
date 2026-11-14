@@ -1,0 +1,1104 @@
+// ============================================================================
+// MaeMorKratai — database overview v0.1 (2026-10-17). PROPOSAL ONLY, never migrated.
+// Paste the whole file into https://dbdiagram.io to see the diagram
+// PostgreSQL 16 · money stored in satang (1900 = 19 THB) · times are timestamptz (UTC), displayed in Asia/Bangkok
+// ============================================================================
+
+Project maemorkratai {
+  database_type: 'PostgreSQL'
+  Note: '''
+  MaeMorKratai fortune-telling system: user accounts (LINE / Google / username + password),
+  multiple services from the services master table (daily card, 3-card spread, siamsi fortune sticks, booking a reader, LINE OA calls),
+  payments (PromptPay QR, TrueMoney Wallet, LINE Pay, bank transfer), journal and community,
+  events/themes that change the UI, admin dashboard, and competitor social data
+  '''
+}
+
+// ---------------------------------------------------------------- Enums
+
+Enum user_status {
+  active
+  suspended
+  deleted
+}
+
+Enum oauth_provider {
+  line
+  google
+}
+
+Enum access_level {
+  anonymous [note: 'no login needed']
+  member [note: 'login required']
+  paid [note: 'login + entitlement (paid / credit / promo)']
+}
+
+Enum service_kind {
+  self_reading [note: 'self-service: tarot, siamsi']
+  live_session [note: 'talk to the real reader: booking, LINE call']
+  journal [note: 'log a card drawn from a physical deck']
+}
+
+Enum record_status {
+  draft
+  active
+  paused
+  retired
+}
+
+Enum review_status {
+  draft
+  in_review
+  approved
+  rejected
+}
+
+Enum reading_source {
+  app
+  manual
+}
+
+Enum reading_status {
+  drawing [note: 'shuffling / picking cards']
+  drawn [note: 'all cards picked, not unlocked yet']
+  unlocked [note: 'meanings visible']
+  abandoned
+}
+
+Enum visibility {
+  private
+  unlisted [note: 'visible only with the link']
+  community [note: 'shown on the community journal page']
+}
+
+Enum order_status {
+  pending
+  paid
+  cancelled
+  expired
+  refunded
+  partially_refunded
+}
+
+Enum payment_method {
+  promptpay_qr
+  truemoney_wallet
+  line_pay
+  bank_transfer
+  card
+  credit [note: 'pay with purchased credits']
+}
+
+Enum payment_status {
+  created
+  pending
+  succeeded
+  failed
+  expired
+  cancelled
+  refunded
+}
+
+Enum booking_status {
+  pending_payment
+  confirmed
+  completed
+  cancelled
+  no_show
+  refunded
+}
+
+Enum notification_channel {
+  line
+  email
+  in_app
+}
+
+Enum moderation_status {
+  visible
+  hidden
+  removed
+}
+
+Enum social_owner {
+  own
+  competitor
+  reference
+}
+
+// ---------------------------------------------------------------- 1. Accounts and permissions
+
+Table users [headercolor: #6B3FA0] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  nickname varchar(40) [not null, note: 'display nickname in app and community; not unique']
+  handle varchar(30) [unique, note: '@handle for profile link; optional']
+  avatar_media_id uuid [ref: > media_assets.id]
+  bio varchar(160)
+  email varchar(255) [note: 'contact / password recovery; optional']
+  email_verified_at timestamptz
+  birth_date date [note: 'optional; for future astrology services']
+  locale varchar(10) [not null, default: 'th']
+  timezone varchar(40) [not null, default: 'Asia/Bangkok']
+  preferred_theme_id int [ref: > themes.id, note: 'null = use the event theme']
+  status user_status [not null, default: 'active']
+  last_login_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz [note: 'account deletion = wipe personal data, keep transactions as required by law']
+}
+
+Table user_identities [headercolor: #6B3FA0] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  provider oauth_provider [not null]
+  provider_subject varchar(255) [not null, note: 'LINE userId or Google sub']
+  email varchar(255)
+  display_name varchar(100) [note: 'name from LINE/Google, used as the default nickname']
+  picture_url text
+  linked_at timestamptz [not null, default: `now()`]
+  last_used_at timestamptz
+
+  indexes {
+    (provider, provider_subject) [unique]
+    user_id
+  }
+  Note: 'one account can link several login methods, e.g. LINE + Google + password'
+}
+
+Table password_credentials [headercolor: #6B3FA0] {
+  user_id uuid [pk, ref: - users.id]
+  username varchar(30) [not null, unique, note: 'stored lowercase']
+  password_hash text [not null, note: 'argon2id only; never store the plain password']
+  failed_attempts smallint [not null, default: 0]
+  locked_until timestamptz
+  changed_at timestamptz [not null, default: `now()`]
+}
+
+Table auth_sessions [headercolor: #6B3FA0] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  token_hash char(64) [not null, unique, note: 'SHA-256 of the session token']
+  ip inet
+  user_agent text
+  created_at timestamptz [not null, default: `now()`]
+  expires_at timestamptz [not null]
+  revoked_at timestamptz
+}
+
+Table auth_tokens [headercolor: #6B3FA0] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  purpose varchar(20) [not null, note: 'password_reset | email_verify | link_account']
+  token_hash char(64) [not null, unique]
+  expires_at timestamptz [not null]
+  used_at timestamptz
+}
+
+Table roles [headercolor: #6B3FA0] {
+  id smallint [pk, increment]
+  code varchar(30) [not null, unique, note: 'admin | staff | reader | moderator | content_editor']
+  name_th varchar(60)
+}
+
+Table user_roles [headercolor: #6B3FA0] {
+  user_id uuid [ref: > users.id]
+  role_id smallint [ref: > roles.id]
+  granted_by uuid [ref: > users.id]
+  granted_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (user_id, role_id) [pk]
+  }
+}
+
+Table consents [headercolor: #6B3FA0] {
+  id bigint [pk, increment]
+  user_id uuid [ref: > users.id]
+  anonymous_id uuid [ref: > anonymous_visitors.id]
+  kind varchar(30) [not null, note: 'terms | privacy | marketing | analytics_cookie']
+  version varchar(20) [not null]
+  granted boolean [not null]
+  recorded_at timestamptz [not null, default: `now()`]
+  ip inet
+  Note: 'PDPA consent evidence; a new row every time the user changes it'
+}
+
+Table anonymous_visitors [headercolor: #6B3FA0] {
+  id uuid [pk, note: 'cookie id before login']
+  first_seen_at timestamptz [not null, default: `now()`]
+  last_seen_at timestamptz
+  first_touch jsonb [note: 'first utm/referrer']
+  merged_user_id uuid [ref: > users.id, note: 'history moves to this account on login']
+  merged_at timestamptz
+}
+
+// ---------------------------------------------------------------- 2. Services, prices, events, themes
+
+Table services [headercolor: #C0663A] {
+  id smallint [pk, increment]
+  code varchar(40) [not null, unique, note: 'tarot_daily | tarot_three | siamsi | booking_live | line_call | journal_manual']
+  name_th varchar(80) [not null]
+  name_en varchar(80)
+  description text
+  kind service_kind [not null]
+  draw_access access_level [not null, note: 'who can start, e.g. 3-card = anonymous']
+  result_access access_level [not null, note: 'who can see the result, e.g. 3-card = paid']
+  free_daily_quota smallint [note: 'e.g. daily card free once per day; null = unlimited']
+  spread_id smallint [ref: > spreads.id, note: 'for tarot services']
+  siamsi_set_id smallint [ref: > siamsi_sets.id, note: 'for siamsi services']
+  config jsonb [note: 'service-specific settings without a column yet']
+  status record_status [not null, default: 'draft']
+  sort_order smallint [not null, default: 0]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  Note: 'master table of all features: new service = new row, no schema change'
+}
+
+Table service_prices [headercolor: #C0663A] {
+  id int [pk, increment]
+  service_id smallint [not null, ref: > services.id]
+  label varchar(60) [not null, note: 'regular | launch promo | event price']
+  amount_satang int [not null, note: '1900 = 19 THB']
+  currency char(3) [not null, default: 'THB']
+  event_id int [ref: > events.id, note: 'null = general price']
+  starts_at timestamptz [not null]
+  ends_at timestamptz
+  created_by uuid [ref: > users.id]
+  created_at timestamptz [not null, default: `now()`]
+  Note: 'price history; the price actually paid is copied into order_items'
+}
+
+Table events [headercolor: #C0663A] {
+  id int [pk, increment]
+  code varchar(40) [not null, unique, note: 'halloween-2026 | loy-krathong-2026']
+  name_th varchar(80) [not null]
+  starts_at timestamptz [not null]
+  ends_at timestamptz [not null]
+  theme_id int [ref: > themes.id]
+  priority smallint [not null, default: 0, note: 'overlapping events: highest wins']
+  status record_status [not null, default: 'draft']
+  config jsonb [note: 'banner text, effects, music']
+}
+
+Table themes [headercolor: #C0663A] {
+  id int [pk, increment]
+  code varchar(40) [not null, unique, note: 'moonlit-default | halloween']
+  name_th varchar(80) [not null]
+  ui_tokens jsonb [not null, note: 'colours, fonts, backgrounds (CSS variables)']
+  deck_id int [ref: > decks.id, note: 'deck / card back for the theme']
+  version int [not null, default: 1]
+  status record_status [not null, default: 'draft']
+  Note: 'switches mascot model set and UI theme by event or user choice'
+}
+
+Table theme_assets [headercolor: #C0663A] {
+  theme_id int [ref: > themes.id]
+  slot varchar(40) [note: 'mascot_model | mascot_idle | background | card_back | sfx_shuffle']
+  media_id uuid [not null, ref: > media_assets.id]
+
+  indexes {
+    (theme_id, slot) [pk]
+  }
+}
+
+Table media_assets [headercolor: #8A8A8A] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  owner_user_id uuid [ref: > users.id, note: 'null = system file']
+  purpose varchar(30) [not null, note: 'avatar | card_art | theme | payment_slip | journal_photo | share_image']
+  storage_key text [not null, note: 'object storage path']
+  mime_type varchar(80) [not null]
+  bytes int
+  width int
+  height int
+  sha256 char(64)
+  is_public boolean [not null, default: false]
+  moderation moderation_status [not null, default: 'visible']
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// ---------------------------------------------------------------- 3. Tarot and siamsi knowledge (owned by the reader)
+
+Table decks [headercolor: #3F7A6B] {
+  id int [pk, increment]
+  code varchar(40) [not null, unique]
+  name_th varchar(80) [not null]
+  back_media_id uuid [ref: > media_assets.id]
+  is_default boolean [not null, default: false]
+  status record_status [not null, default: 'draft']
+}
+
+Table cards [headercolor: #3F7A6B] {
+  id varchar(40) [pk, note: 'the-fool, queen-of-swords (matches the IDs used by the website)']
+  arcana varchar(5) [not null, note: 'major | minor']
+  suit varchar(10) [note: 'wands | cups | swords | pentacles']
+  rank smallint
+  name_en varchar(60) [not null]
+  name_th varchar(60)
+  sort_order smallint [not null]
+}
+
+Table deck_cards [headercolor: #3F7A6B] {
+  deck_id int [ref: > decks.id]
+  card_id varchar(40) [ref: > cards.id]
+  front_media_id uuid [ref: > media_assets.id]
+  art_status review_status [not null, default: 'draft', note: 'only owner-approved art goes live']
+
+  indexes {
+    (deck_id, card_id) [pk]
+  }
+}
+
+Table spreads [headercolor: #3F7A6B] {
+  id smallint [pk, increment]
+  code varchar(40) [not null, unique, note: 'single | past_present_future']
+  name_th varchar(80) [not null]
+  card_count smallint [not null]
+}
+
+Table spread_positions [headercolor: #3F7A6B] {
+  spread_id smallint [ref: > spreads.id]
+  position_index smallint
+  code varchar(30) [not null, note: 'past | present | future']
+  label_th varchar(40) [not null]
+  hint_th varchar(80)
+
+  indexes {
+    (spread_id, position_index) [pk]
+  }
+}
+
+Table topics [headercolor: #3F7A6B] {
+  id smallint [pk, increment]
+  code varchar(20) [not null, unique, note: 'love | work | money | life']
+  label_th varchar(40) [not null]
+  status record_status [not null, default: 'active']
+}
+
+Table situations [headercolor: #3F7A6B] {
+  id smallint [pk, increment]
+  topic_id smallint [not null, ref: > topics.id]
+  code varchar(30) [not null, note: 'single | crush | talking | complicated | together | broken_up']
+  label_th varchar(40) [not null, note: 'Thai label, e.g. single, crush, talking ...']
+  sort_order smallint [not null, default: 0]
+
+  indexes {
+    (topic_id, code) [unique]
+  }
+}
+
+Table knowledge_versions [headercolor: #3F7A6B] {
+  id int [pk, increment]
+  code varchar(30) [not null, unique, note: '2026.10-draft']
+  status review_status [not null, default: 'draft']
+  published_at timestamptz
+  approved_by uuid [ref: > users.id]
+  notes text
+  Note: 'owner knowledge set; a new version never changes readings customers already bought'
+}
+
+Table card_meanings [headercolor: #3F7A6B] {
+  id bigint [pk, increment]
+  knowledge_version_id int [not null, ref: > knowledge_versions.id]
+  card_id varchar(40) [not null, ref: > cards.id]
+  topic_id smallint [not null, ref: > topics.id]
+  situation_id smallint [ref: > situations.id, note: 'null = applies to every situation in the topic']
+  position_code varchar(30) [note: 'null = any position']
+  orientation varchar(10) [not null, default: 'upright']
+  meaning_text text [not null]
+  source_ref varchar(120) [note: 'source in the owner chat / notes']
+  review review_status [not null, default: 'draft']
+  reviewed_by uuid [ref: > users.id]
+  reviewed_at timestamptz
+
+  indexes {
+    (knowledge_version_id, card_id, topic_id, situation_id, position_code, orientation) [unique]
+  }
+}
+
+Table reading_templates [headercolor: #3F7A6B] {
+  id bigint [pk, increment]
+  knowledge_version_id int [not null, ref: > knowledge_versions.id]
+  spread_id smallint [not null, ref: > spreads.id]
+  topic_id smallint [ref: > topics.id]
+  situation_id smallint [ref: > situations.id]
+  kind varchar(20) [not null, note: 'summary | reflection | bridge']
+  body text [not null, note: 'has placeholders such as {past} {present} {future}']
+  review review_status [not null, default: 'draft']
+  Note: 'owner method for combining 3 cards (the summary is still a demo)'
+}
+
+Table siamsi_sets [headercolor: #3F7A6B] {
+  id smallint [pk, increment]
+  code varchar(40) [not null, unique]
+  name_th varchar(80) [not null]
+  stick_count smallint [not null]
+  source text [note: 'source and usage rights of the fortunes']
+  status record_status [not null, default: 'draft']
+}
+
+Table siamsi_sticks [headercolor: #3F7A6B] {
+  id int [pk, increment]
+  set_id smallint [not null, ref: > siamsi_sets.id]
+  number smallint [not null]
+  poem_th text [not null]
+  meanings jsonb [note: 'fortunes per topic: work, money, love, health']
+  review review_status [not null, default: 'draft']
+
+  indexes {
+    (set_id, number) [unique]
+  }
+}
+
+// ---------------------------------------------------------------- 4. User readings
+
+Table readings [headercolor: #2F5D8A] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [ref: > users.id, note: 'null = not logged in (moved to the account on login)']
+  anonymous_id uuid [ref: > anonymous_visitors.id]
+  service_id smallint [not null, ref: > services.id]
+  source reading_source [not null, default: 'app']
+  status reading_status [not null, default: 'drawing']
+  deck_id int [ref: > decks.id]
+  topic_id smallint [ref: > topics.id]
+  situation_id smallint [ref: > situations.id]
+  question text [note: 'typed question = personal data; user can delete it']
+  event_id int [ref: > events.id, note: 'event active at reading time']
+  theme_id int [ref: > themes.id]
+  drawn_at timestamptz
+  unlocked_at timestamptz
+  local_date date [not null, note: 'date in the user timezone, for the calendar']
+  client jsonb [note: 'device, WebGL support, app version']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (user_id, local_date)
+    anonymous_id
+    (service_id, created_at)
+  }
+  Note: 'one row = one reading of any service (tarot, siamsi, physical-deck log)'
+}
+
+Table reading_cards [headercolor: #2F5D8A] {
+  reading_id uuid [ref: > readings.id]
+  position_index smallint [note: '0 past | 1 present | 2 future']
+  card_id varchar(40) [not null, ref: > cards.id]
+  orientation varchar(10) [not null, default: 'upright']
+  placed_at timestamptz
+  opened_at timestamptz [note: 'when the user tapped to open']
+
+  indexes {
+    (reading_id, position_index) [pk]
+    (reading_id, card_id) [unique]
+    card_id
+  }
+}
+
+Table reading_sticks [headercolor: #2F5D8A] {
+  reading_id uuid [pk, ref: - readings.id]
+  stick_id int [not null, ref: > siamsi_sticks.id]
+  shaken_at timestamptz [not null, default: `now()`]
+}
+
+Table reading_results [headercolor: #2F5D8A] {
+  reading_id uuid [pk, ref: - readings.id]
+  knowledge_version_id int [ref: > knowledge_versions.id]
+  entries jsonb [not null, note: 'snapshot of each card meaning at unlock time']
+  summary text
+  reflection text
+  generated_by varchar(20) [not null, default: 'rules', note: 'rules | reader | ai']
+  created_at timestamptz [not null, default: `now()`]
+  Note: 'paid reading; served only by the server after an entitlement check'
+}
+
+Table entitlements [headercolor: #2F5D8A] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  service_id smallint [not null, ref: > services.id]
+  reading_id uuid [ref: > readings.id]
+  booking_id uuid [ref: > bookings.id]
+  order_item_id uuid [ref: > order_items.id, note: 'null = free, promo, or granted by admin']
+  source varchar(20) [not null, note: 'purchase | free_quota | credit | promo | admin_grant']
+  granted_at timestamptz [not null, default: `now()`]
+  expires_at timestamptz
+  revoked_at timestamptz
+
+  indexes {
+    (user_id, reading_id) [unique]
+  }
+  Note: 'right to view a result: the API returns the reading only if a non-revoked row exists'
+}
+
+Table user_daily_summaries [headercolor: #2F5D8A] {
+  user_id uuid [ref: > users.id]
+  local_date date
+  readings_count smallint [not null, default: 0]
+  unlocked_count smallint [not null, default: 0]
+  cards jsonb [note: 'cards opened that day [{card_id, reading_id, position}]']
+  is_bookmarked boolean [not null, default: false]
+  note varchar(280) [note: 'short note for the day']
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (user_id, local_date) [pk]
+  }
+  Note: 'calendar page: which cards were opened today; updated on every reading'
+}
+
+// ---------------------------------------------------------------- 5. Journal and community
+
+Table journal_entries [headercolor: #A0457A] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  reading_id uuid [ref: > readings.id, note: 'logged cards (physical-deck logs use a manual reading)']
+  entry_date date [not null]
+  title varchar(120)
+  body text [note: 'feelings or takeaways from the cards']
+  include_question boolean [not null, default: false, note: 'share the question too?']
+  include_meaning boolean [not null, default: true]
+  visibility visibility [not null, default: 'private']
+  share_slug varchar(16) [unique, note: 'short share link']
+  share_image_id uuid [ref: > media_assets.id, note: 'preview image when shared on LINE / social']
+  published_at timestamptz
+  like_count int [not null, default: 0]
+  comment_count int [not null, default: 0]
+  moderation moderation_status [not null, default: 'visible']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (user_id, entry_date)
+    (visibility, published_at)
+  }
+}
+
+Table journal_reactions [headercolor: #A0457A] {
+  entry_id uuid [ref: > journal_entries.id]
+  user_id uuid [ref: > users.id]
+  kind varchar(12) [default: 'heart']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (entry_id, user_id, kind) [pk]
+  }
+}
+
+Table journal_comments [headercolor: #A0457A] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  entry_id uuid [not null, ref: > journal_entries.id]
+  user_id uuid [not null, ref: > users.id]
+  parent_id uuid [ref: > journal_comments.id, note: 'reply to a comment']
+  body varchar(1000) [not null]
+  moderation moderation_status [not null, default: 'visible']
+  created_at timestamptz [not null, default: `now()`]
+  edited_at timestamptz
+  deleted_at timestamptz
+}
+
+Table user_follows [headercolor: #A0457A] {
+  follower_id uuid [ref: > users.id]
+  followee_id uuid [ref: > users.id]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (follower_id, followee_id) [pk]
+  }
+}
+
+Table user_blocks [headercolor: #A0457A] {
+  blocker_id uuid [ref: > users.id]
+  blocked_id uuid [ref: > users.id]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (blocker_id, blocked_id) [pk]
+  }
+}
+
+Table content_reports [headercolor: #A0457A] {
+  id bigint [pk, increment]
+  reporter_id uuid [not null, ref: > users.id]
+  target_type varchar(20) [not null, note: 'journal_entry | comment | user']
+  target_id uuid [not null]
+  reason varchar(40) [not null]
+  detail text
+  status varchar(20) [not null, default: 'open', note: 'open | actioned | dismissed']
+  handled_by uuid [ref: > users.id]
+  handled_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// ---------------------------------------------------------------- 6. Orders and payments
+
+Table orders [headercolor: #B08A2E] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  order_no varchar(20) [not null, unique, note: 'MMK-261017-0001']
+  user_id uuid [not null, ref: > users.id, note: 'login required before paying']
+  status order_status [not null, default: 'pending']
+  subtotal_satang int [not null]
+  discount_satang int [not null, default: 0]
+  total_satang int [not null]
+  currency char(3) [not null, default: 'THB']
+  promo_code_id int [ref: > promo_codes.id]
+  expires_at timestamptz [note: 'QR / payment link expiry']
+  paid_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (user_id, created_at)
+    (status, created_at)
+  }
+}
+
+Table order_items [headercolor: #B08A2E] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  order_id uuid [not null, ref: > orders.id]
+  service_id smallint [not null, ref: > services.id]
+  service_price_id int [ref: > service_prices.id]
+  reading_id uuid [ref: > readings.id, note: 'unlock this reading (19 THB)']
+  booking_id uuid [ref: > bookings.id]
+  credit_pack_qty smallint [note: 'when buying a credit pack']
+  description varchar(200) [not null]
+  quantity smallint [not null, default: 1]
+  unit_price_satang int [not null]
+  total_satang int [not null]
+}
+
+Table payments [headercolor: #B08A2E] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  order_id uuid [not null, ref: > orders.id]
+  method payment_method [not null]
+  provider varchar(30) [not null, note: 'payment gateway | linepay | manual']
+  provider_charge_id varchar(120) [unique, note: 'gateway reference']
+  status payment_status [not null, default: 'created']
+  amount_satang int [not null]
+  fee_satang int [note: 'gateway fee']
+  net_satang int
+  currency char(3) [not null, default: 'THB']
+  payer_ref varchar(60) [note: 'partially masked payer info; never store card numbers']
+  slip_media_id uuid [ref: > media_assets.id, note: 'transfer slip for manual bank transfers']
+  receiving_account_id smallint [ref: > receiving_accounts.id]
+  verified_by uuid [ref: > users.id, note: 'admin who verified the slip']
+  verified_at timestamptz
+  failure_code varchar(60)
+  created_at timestamptz [not null, default: `now()`]
+  succeeded_at timestamptz
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table payment_webhook_events [headercolor: #B08A2E] {
+  id bigint [pk, increment]
+  provider varchar(30) [not null]
+  provider_event_id varchar(120) [not null]
+  event_type varchar(60) [not null]
+  payment_id uuid [ref: > payments.id]
+  signature_valid boolean [not null]
+  payload jsonb [not null]
+  received_at timestamptz [not null, default: `now()`]
+  processed_at timestamptz
+
+  indexes {
+    (provider, provider_event_id) [unique, note: 'prevents processing a webhook twice']
+  }
+}
+
+Table refunds [headercolor: #B08A2E] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  payment_id uuid [not null, ref: > payments.id]
+  amount_satang int [not null]
+  reason varchar(200)
+  status varchar(20) [not null, default: 'requested', note: 'requested | succeeded | failed']
+  provider_refund_id varchar(120)
+  requested_by uuid [ref: > users.id]
+  processed_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table receiving_accounts [headercolor: #B08A2E] {
+  id smallint [pk, increment]
+  kind varchar(20) [not null, note: 'bank | promptpay']
+  bank_code varchar(10)
+  account_name varchar(100) [not null]
+  account_no_masked varchar(30) [not null]
+  is_active boolean [not null, default: true]
+  Note: 'shop receiving accounts, shown on the transfer page'
+}
+
+Table promo_codes [headercolor: #B08A2E] {
+  id int [pk, increment]
+  code varchar(30) [not null, unique]
+  discount_type varchar(10) [not null, note: 'percent | amount | free']
+  discount_value int [not null]
+  service_id smallint [ref: > services.id]
+  event_id int [ref: > events.id]
+  starts_at timestamptz
+  ends_at timestamptz
+  max_uses int
+  max_uses_per_user smallint [default: 1]
+  used_count int [not null, default: 0]
+  is_active boolean [not null, default: true]
+}
+
+Table credit_ledger [headercolor: #B08A2E] {
+  id bigint [pk, increment]
+  user_id uuid [not null, ref: > users.id]
+  delta int [not null, note: '+ bought or granted, - spent on unlocks']
+  balance_after int [not null]
+  reason varchar(30) [not null, note: 'purchase | unlock | promo | refund | admin']
+  order_id uuid [ref: > orders.id]
+  reading_id uuid [ref: > readings.id]
+  created_at timestamptz [not null, default: `now()`]
+  Note: 'option: credit packs (e.g. 99 THB = 6 unlocks) to cut per-transaction fees on small payments'
+}
+
+Table receipts [headercolor: #B08A2E] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  order_id uuid [not null, unique, ref: - orders.id]
+  receipt_no varchar(30) [not null, unique]
+  buyer_name varchar(120)
+  buyer_tax_id varchar(20) [note: 'for tax invoice requests']
+  pdf_media_id uuid [ref: > media_assets.id]
+  issued_at timestamptz [not null, default: `now()`]
+}
+
+// ---------------------------------------------------------------- 7. Booking the real reader
+
+Table readers [headercolor: #4E7F3A] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [unique, ref: - users.id, note: 'the reader login account']
+  display_name varchar(80) [not null]
+  bio text
+  avatar_media_id uuid [ref: > media_assets.id]
+  specialties jsonb
+  status record_status [not null, default: 'active']
+}
+
+Table reader_offerings [headercolor: #4E7F3A] {
+  id int [pk, increment]
+  reader_id uuid [not null, ref: > readers.id]
+  service_id smallint [not null, ref: > services.id, note: 'booking_live | line_call']
+  channel varchar(20) [not null, note: 'line_call | line_video | line_chat | onsite']
+  duration_min smallint [not null]
+  price_satang int [note: 'null = use service_prices']
+  is_active boolean [not null, default: true]
+}
+
+Table reader_availability [headercolor: #4E7F3A] {
+  id int [pk, increment]
+  reader_id uuid [not null, ref: > readers.id]
+  weekday smallint [not null, note: '0 = Sunday']
+  start_time time [not null]
+  end_time time [not null]
+  valid_from date
+  valid_to date
+}
+
+Table reader_time_off [headercolor: #4E7F3A] {
+  id int [pk, increment]
+  reader_id uuid [not null, ref: > readers.id]
+  starts_at timestamptz [not null]
+  ends_at timestamptz [not null]
+  reason varchar(120)
+}
+
+Table bookings [headercolor: #4E7F3A] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  booking_no varchar(20) [not null, unique]
+  user_id uuid [not null, ref: > users.id]
+  reader_id uuid [not null, ref: > readers.id]
+  offering_id int [not null, ref: > reader_offerings.id]
+  starts_at timestamptz [not null]
+  ends_at timestamptz [not null]
+  status booking_status [not null, default: 'pending_payment']
+  topic_id smallint [ref: > topics.id]
+  question text
+  meeting_url text
+  user_note text
+  reader_private_note text [note: 'hidden from the user']
+  reminded_at timestamptz
+  cancelled_at timestamptz
+  cancel_reason varchar(200)
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (reader_id, starts_at)
+    (user_id, starts_at)
+  }
+  Note: 'prevent double booking with EXCLUDE USING gist (reader_id WITH =, tstzrange(starts_at, ends_at) WITH &&) when status is pending_payment or confirmed'
+}
+
+// ---------------------------------------------------------------- 8. LINE OA and notifications
+
+Table line_oa_links [headercolor: #2E9C6A] {
+  user_id uuid [pk, ref: - users.id]
+  line_user_id varchar(64) [not null, unique, note: 'matches LINE Login when both channels share a provider']
+  is_friend boolean [not null, default: false]
+  followed_at timestamptz
+  unfollowed_at timestamptz
+  last_message_at timestamptz
+}
+
+Table notifications [headercolor: #2E9C6A] {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  channel notification_channel [not null]
+  template varchar(60) [not null, note: 'payment_success | booking_reminder | new_comment | event_start']
+  payload jsonb
+  status varchar(12) [not null, default: 'queued', note: 'queued | sent | failed | read']
+  scheduled_at timestamptz
+  sent_at timestamptz
+  read_at timestamptz
+  error text
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// ---------------------------------------------------------------- 9. Admin and dashboard
+
+Table admin_audit_logs [headercolor: #555555] {
+  id bigint [pk, increment]
+  actor_id uuid [not null, ref: > users.id]
+  action varchar(60) [not null, note: 'verify_slip | refund | hide_entry | publish_meanings']
+  target_type varchar(30) [not null]
+  target_id varchar(64) [not null]
+  before_data jsonb
+  after_data jsonb
+  ip inet
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table app_settings [headercolor: #555555] {
+  setting_key varchar(60) [pk]
+  setting_value jsonb [not null]
+  updated_by uuid [ref: > users.id]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table app_events [headercolor: #555555] {
+  id bigint [pk, increment]
+  occurred_at timestamptz [not null]
+  user_id uuid [ref: > users.id]
+  anonymous_id uuid [ref: > anonymous_visitors.id]
+  name varchar(60) [not null, note: 'page_view | shuffle_start | card_placed | unlock_click | checkout_start | payment_success | entry_shared']
+  service_id smallint [ref: > services.id]
+  reading_id uuid [ref: > readings.id]
+  properties jsonb
+  utm jsonb
+  device varchar(20)
+
+  indexes {
+    (name, occurred_at)
+  }
+  Note: 'free-to-paid funnel for the dashboard (monthly partitions)'
+}
+
+Table kpi_daily [headercolor: #555555] {
+  metric_date date
+  metric varchar(60) [note: 'revenue_satang | new_users | readings | paid_conversion | refunds']
+  dimension varchar(60) [default: '', note: 'e.g. service=tarot_three or method=truemoney_wallet']
+  metric_value numeric(14,2) [not null]
+  computed_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (metric_date, metric, dimension) [pk]
+  }
+  Note: 'daily summary numbers for the admin summary page (nightly job)'
+}
+
+// ---------------------------------------------------------------- 10. Social and competitors (extends the old Social Center)
+
+Table competitors [headercolor: #7A4E2E] {
+  id int [pk, increment]
+  name varchar(100) [not null]
+  niche varchar(40) [note: 'tarot | horoscope | siamsi | spiritual_shop']
+  website text
+  priority smallint [not null, default: 0]
+  notes text
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table social_accounts [headercolor: #7A4E2E] {
+  id int [pk, increment]
+  platform varchar(20) [not null, note: 'tiktok | instagram | facebook | youtube | line_voom | x']
+  external_id varchar(100)
+  handle varchar(100) [not null]
+  display_name varchar(120)
+  owner social_owner [not null]
+  competitor_id int [ref: > competitors.id]
+  url text
+  is_tracked boolean [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (platform, handle) [unique]
+  }
+}
+
+Table social_posts [headercolor: #7A4E2E] {
+  id bigint [pk, increment]
+  account_id int [not null, ref: > social_accounts.id]
+  external_post_id varchar(120) [not null]
+  url text
+  published_at timestamptz
+  format varchar(20) [note: 'video | image | carousel | live | text']
+  caption text
+  duration_sec int
+  hashtags jsonb
+  topics jsonb [note: 'manual topics, e.g. love horoscope, daily card']
+  first_seen_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (account_id, external_post_id) [unique]
+    (account_id, published_at)
+  }
+}
+
+Table social_metric_observations [headercolor: #7A4E2E] {
+  id bigint [pk, increment]
+  account_id int [not null, ref: > social_accounts.id]
+  post_id bigint [ref: > social_posts.id, note: 'null = account level, e.g. followers']
+  metric varchar(40) [not null, note: 'followers | views | likes | comments | shares | saves']
+  period varchar(12) [not null, default: 'lifetime', note: 'lifetime | day | week']
+  metric_value numeric(18,2)
+  observed_at timestamptz [not null]
+  sync_source_id bigint [ref: > social_sync_sources.id]
+
+  indexes {
+    (account_id, metric, observed_at)
+    (post_id, metric, observed_at)
+  }
+  Note: 'time series for trends (extends the old Social Center metrics table)'
+}
+
+Table social_comment_themes [headercolor: #7A4E2E] {
+  id bigint [pk, increment]
+  account_id int [not null, ref: > social_accounts.id]
+  period_start date [not null]
+  period_end date [not null]
+  theme varchar(80) [not null, note: 'e.g. asking price, asking for a love reading']
+  sentiment varchar(10) [note: 'positive | neutral | negative']
+  mention_count int [not null]
+  Note: 'aggregated comment themes only; no names or individual messages'
+}
+
+Table social_trends [headercolor: #7A4E2E] {
+  id bigint [pk, increment]
+  platform varchar(20) [not null]
+  kind varchar(12) [not null, note: 'hashtag | sound | topic']
+  trend_value varchar(200) [not null]
+  observed_on date [not null]
+  rank_position int
+  stats jsonb
+}
+
+Table social_sync_sources [headercolor: #7A4E2E] {
+  id bigint [pk, increment]
+  platform varchar(20) [not null]
+  method varchar(20) [not null, note: 'official_api | manual_csv | manual_entry']
+  endpoint varchar(120)
+  api_version varchar(20)
+  fetched_at timestamptz [not null]
+  sha256 char(64)
+  job_status varchar(20)
+  message text
+  Note: 'source of every number, to trace whether it came from the API or manual entry'
+}
+
+// ---------------------------------------------------------------- Table groups in the diagram
+
+TableGroup identity_access {
+  users
+  user_identities
+  password_credentials
+  auth_sessions
+  auth_tokens
+  roles
+  user_roles
+  consents
+  anonymous_visitors
+}
+
+TableGroup catalog_events_themes {
+  services
+  service_prices
+  events
+  themes
+  theme_assets
+  media_assets
+}
+
+TableGroup tarot_siamsi_knowledge {
+  decks
+  cards
+  deck_cards
+  spreads
+  spread_positions
+  topics
+  situations
+  knowledge_versions
+  card_meanings
+  reading_templates
+  siamsi_sets
+  siamsi_sticks
+}
+
+TableGroup user_readings {
+  readings
+  reading_cards
+  reading_sticks
+  reading_results
+  entitlements
+  user_daily_summaries
+}
+
+TableGroup journal_community {
+  journal_entries
+  journal_reactions
+  journal_comments
+  user_follows
+  user_blocks
+  content_reports
+}
+
+TableGroup commerce {
+  orders
+  order_items
+  payments
+  payment_webhook_events
+  refunds
+  receiving_accounts
+  promo_codes
+  credit_ledger
+  receipts
+}
+
+TableGroup live_booking {
+  readers
+  reader_offerings
+  reader_availability
+  reader_time_off
+  bookings
+}
+
+TableGroup line_notifications {
+  line_oa_links
+  notifications
+}
+
+TableGroup admin_dashboard {
+  admin_audit_logs
+  app_settings
+  app_events
+  kpi_daily
+}
+
+TableGroup social_intelligence {
+  competitors
+  social_accounts
+  social_posts
+  social_metric_observations
+  social_comment_themes
+  social_trends
+  social_sync_sources
+}
