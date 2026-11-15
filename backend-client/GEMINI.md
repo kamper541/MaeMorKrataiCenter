@@ -5,6 +5,16 @@ Welcome! This project follows the **`gb-sdlc` Spec-Driven Development (SDD)** pa
 
 ---
 
+> [!IMPORTANT]
+> ## 0. Scope & Harness Isolation Mandate (CRITICAL)
+>
+> **For ANY task inside `backend-client/` (or any `backend-client` backend task), you MUST operate strictly at this folder level (`backend-client/`) ONLY:**
+> 1. **Ignore Parent / Root LLM Definitions & Harnesses**: If there is any LLM configuration, instruction file (`GEMINI.md`, `CLAUDE.md`, `AGENTS.md`, `.cursor*`, `.claude*`, `.gemini*`, etc.), workflow, or agent harness defined at the monorepo root or any parent directory above `backend-client/`, you **MUST IGNORE IT COMPLETELY**. Use only `backend-client/.gb-sdlc/`, `backend-client/GEMINI.md`, `backend-client/AGENTS.md`, `backend-client/HANDOFF.md`, `backend-client/TODO.md`, and `backend-client/docs/`.
+> 2. **Zero Interference from Frontend LLM Configs / Harnesses**: Any LLM configuration, rules, skills, workflows, or agent harness inside `../frontend-client/` or `../frontend-admin/` **MUST NOT interfere with the backend AT ALL**. Do not read, adopt, merge, or follow frontend LLM instructions, conventions, or harnesses when working on backend tasks.
+> 3. **Monorepo Boundary**: Do not import code across folders. The only shared meeting point with frontend is the API contract and shared reference material in `../docs/` (specifically `../docs/api/client/`). All SDLC specs, plans, decisions, and handoffs for this service live strictly inside `backend-client/`.
+
+---
+
 ## 1. Operating Rules for AI Agents
 
 All AI coding assistants working in this repository MUST obey the guardrails defined in `.gb-sdlc/guardrails/`:
