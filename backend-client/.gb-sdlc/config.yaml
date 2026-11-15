@@ -1,0 +1,48 @@
+# .gb-sdlc Configuration
+version: "1.2.0"
+sdlc_model: "spec-driven-agentic"
+
+# Core Paths
+paths:
+  specs: "docs/specs"
+  decisions: "docs/decisions"
+  architectures: "docs/architectures"
+  knowledges: "docs/knowledges"
+  researches: "docs/researches"
+  battlegrounds: "docs/battlegrounds"
+  plans: "docs/plans"
+  plan_records: "docs/plan-records"
+  handoff: "HANDOFF.md"
+  todo: "TODO.md"
+  skills: ".gb-sdlc/skills"
+
+# Guardrail Priorities (Non-negotiable during Battleground & Implementation)
+priorities:
+  1: "Security (OWASP Top 10 & defensive design)"
+  2: "Low Technical Debt (Clean architecture, maintainability, modularity)"
+  3: "Fast Implementation (Pragmatic execution, zero unnecessary bloat)"
+
+# Agent Presets
+agents:
+  spectre: ".gb-sdlc/agents/spectre.md"
+  researcher: ".gb-sdlc/agents/researcher.md"
+  planner: ".gb-sdlc/agents/planner.md"
+  battleground_contender: ".gb-sdlc/agents/battleground-contender.md"
+  executor: ".gb-sdlc/agents/executor.md"
+  coder: ".gb-sdlc/agents/executor.md" # Alias for executor
+  verifier: ".gb-sdlc/agents/verifier.md"
+
+# Skills Configuration (Discovered and loaded by agents during planning & execution)
+skills:
+  built_in:
+    - deslop
+  linked: []
+
+# Plan Conventions
+plan_conventions:
+  overview_task: "00_OVERVIEW.md"
+  documentation_task: "NN_DOCUMENTATION.md"
+  full_code_required: true
+  executor_assumptions_allowed: false
+  single_task_per_executor: true
+  read_overview_first: true
