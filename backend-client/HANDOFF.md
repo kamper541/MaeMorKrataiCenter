@@ -8,9 +8,9 @@
 ## 1. Executive Summary & Progress
 
 - **Project Status**: `INITIALIZED`
-- **Last Updated**: 2026-10-31 00:00
-- **Active Session Agent**: `None (Awaiting First Spec)`
-- **Progress Snapshot**: Project initialized with `gb-sdlc`. Ready to draft initial specifications in `docs/specs/`.
+- **Last Updated**: 2026-11-15
+- **Active Session Agent**: `None (Awaiting Spec 01: Rust + Cloudflare Workers/D1/R2 Scaffold)`
+- **Progress Snapshot**: Project initialized with `gb-sdlc`. Frontend decoupling audit completed in `../docs/handover-frontend-decoupling.md`. Ready to draft Spec 01 (`SPEC-001`) in `docs/specs/`.
 
 ### Milestone Checklist
 - [ ] Milestone 1: Initial Core Specification & Planning
@@ -44,9 +44,10 @@
 ## 4. Leftovers, Blockers & Next Steps
 
 ### Immediate Next Steps (For Next Agent / Developer)
-1. [ ] Start a conversation with **Spectre** (`.gb-sdlc/agents/spectre.md`) to define the first spec in `docs/specs/<spec-name>.md` following the 5-phase loop (Understand -> Confirm -> Interrogate -> Suggest Solutions -> Sign-Off).
-2. [ ] If modern library choices or ecosystem standards need checking, conduct a live web research spike with **Researcher** (`docs/researches/`).
-3. [ ] Approve the spec to trigger autonomous planning and implementation.
+1. [ ] Read [Frontend Decoupling Handover](../docs/handover-frontend-decoupling.md) for the full inventory of `frontend-client` data/features moving to `backend-client` (`daily-cards.json`, `reading-cards.json`, `v3/manifest.json`, deck shuffle/draw lock, 3+1 reading engine, accounts, orders/credits, R2 card art).
+2. [ ] Start a conversation with **Spectre** (`.gb-sdlc/agents/spectre.md`) for **Spec 01 (AI-Native & Agentic-Native Backend Scaffold)** targeting **Rust** on **Cloudflare Workers + D1 + R2** (`docs/specs/SPEC-001-*.md`) following the 5-phase loop (Understand -> Confirm -> Interrogate -> Suggest Solutions -> Sign-Off).
+3. [ ] Conduct a live web research spike with **Researcher** (`docs/researches/`) on 2026 Rust `worker` crate / D1 / R2 / AI-native & agentic patterns on `wasm32-unknown-unknown`.
+4. [ ] Approve the spec to trigger autonomous planning and implementation, and define the OpenAPI contract in `../docs/api/client/`.
 
 ### Leftovers & Technical Nuances
 - **Leftover Tasks**: Initial setup completed. No residual tasks.
