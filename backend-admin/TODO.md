@@ -14,6 +14,12 @@
 | ID | Title | Priority | Status | Discovered During | Graduated Spec |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `TODO-001` | Initial Feature Enhancements | Low | PROPOSED | Project Initialization | - |
+| `TODO-002` | AI-Native LLM Chat, RAG Database & Agentic Tools | High | PROPOSED | SPEC-001 Scoping | - |
+| `TODO-003` | Knowledge Release Curation, Reading Escalations & A/B Eval Harness | High | PROPOSED | SPEC-001 Scoping | - |
+| `TODO-004` | Orders, Credit Ledger & Payment Reconciliation Admin | Medium | PROPOSED | SPEC-001 Scoping | - |
+| `TODO-005` | Content Studio Job Queue (Mac Pull Worker) & Social Center | Medium | PROPOSED | SPEC-001 Scoping | - |
+| `TODO-006` | Cloudflare Access Zero Trust Migration & Key Rotation Automation | Medium | PROPOSED | SPEC-001 Auth Design | - |
+| `TODO-007` | Argon2id Password Hashing Upgrade (Workers Paid Tier) | Low | PROPOSED | SPEC-001 Spectre Audit | - |
 
 ---
 
@@ -31,6 +37,84 @@
   - Document ideas, edge cases, or optimizations here.
 - **Graduation / Promotion Criteria**:
   - When the team identifies this enhancement as valuable for an upcoming milestone, Spectre will promote it to a spec in `docs/specs/`.
+
+### [TODO-002] AI-Native LLM Chat, RAG Database & Agentic Tools
+- **Status**: `PROPOSED`
+- **Discovered On**: 2026-11-15
+- **Discovered By / During**: SPEC-001 Scoping
+- **Priority**: `P1 (High)`
+- **Why Not Now?**: Deferred from `SPEC-001` infrastructure scaffold so core Workers, D1, R2, and Auth are built and audited first.
+- **Context & Problem Statement**:
+  The backend must support future LLM chat integration, a RAG knowledge base, and agentic AI tool-calling workflows (e.g., knowledge proposal extraction, competitor clip analysis, evidence-grounded reading assistance).
+- **Proto-Spec Sketch (Suggested Approach)**:
+  - Define Cloudflare Vectorize / RAG retrieval index + Cloudflare AI Gateway adapter, MCP/typed tool schemas, prompt-injection defense, and per-job/per-day budget caps.
+- **Graduation / Promotion Criteria**:
+  - After `SPEC-002` (Cards/Daily D1+R2 slice) is live and knowledge curation begins.
+
+### [TODO-003] Knowledge Release Curation, Reading Escalations & A/B Eval Harness
+- **Status**: `PROPOSED`
+- **Discovered On**: 2026-11-15
+- **Discovered By / During**: SPEC-001 Scoping (from `docs/context/05` & `06`)
+- **Priority**: `P1 (High)`
+- **Why Not Now?**: Depends on `SPEC-001` scaffold and `SPEC-002` card schema.
+- **Context & Problem Statement**:
+  Reader needs to curate original vs. edited knowledge, maintain strict `development` vs. `holdout` splits, publish immutable `knowledge_releases`, resolve `needs_owner` reading escalations, and run blind A/B engine evaluations.
+- **Proto-Spec Sketch (Suggested Approach)**:
+  - D1 tables (`knowledge_entries`, `knowledge_releases`, `approval_events`, `eval_runs`) and R2 private audio/transcript storage.
+- **Graduation / Promotion Criteria**:
+  - Next milestone after `SPEC-002`.
+
+### [TODO-004] Orders, Credit Ledger & Payment Reconciliation Admin
+- **Status**: `PROPOSED`
+- **Discovered On**: 2026-11-15
+- **Discovered By / During**: SPEC-001 Scoping (from `docs/context/04`)
+- **Priority**: `P2 (Medium)`
+- **Why Not Now?**: Phase 1 has no customer accounts or paid checkout yet.
+- **Context & Problem Statement**:
+  Admin visibility into satang-denominated orders, provider payment events, credit ledger adjustments, refunds, and stuck-reservation reconciliation.
+- **Proto-Spec Sketch (Suggested Approach)**:
+  - Admin read/reconcile endpoints backed by D1 transactional ledger tables.
+- **Graduation / Promotion Criteria**:
+  - Paired with `backend-client` paid beta milestone.
+
+### [TODO-005] Content Studio Job Queue (Mac Pull Worker) & Social Center
+- **Status**: `PROPOSED`
+- **Discovered On**: 2026-11-15
+- **Discovered By / During**: SPEC-001 Scoping (from `docs/context/06` & `social-center.md`)
+- **Priority**: `P2 (Medium)`
+- **Why Not Now?**: Requires `SPEC-001` R2 private bucket and admin auth foundation first.
+- **Context & Problem Statement**:
+  Durable job state machine for Blender/ffmpeg video pipelines (pulled securely by owner's Mac via scoped token) plus Social Center Meta OAuth/analytics and competitor research.
+- **Proto-Spec Sketch (Suggested Approach)**:
+  - Cloudflare Queues/D1 lease-based jobs + R2 artifact manifests + encrypted Meta OAuth token storage.
+- **Graduation / Promotion Criteria**:
+  - When Content Studio or Social Center UI work begins in `frontend-admin/`.
+
+### [TODO-006] Cloudflare Access Zero Trust Migration & Key Rotation Automation
+- **Status**: `PROPOSED`
+- **Discovered On**: 2026-11-15
+- **Discovered By / During**: SPEC-001 Auth Design (`D03`)
+- **Priority**: `P2 (Medium)`
+- **Why Not Now?**: Phase 1 launches with Email + Password (`users`, `sessions`, `jwks_keys`) for ~3 admin/owner users.
+- **Context & Problem Statement**:
+  Replace Phase 1 email+password login with Cloudflare Access Zero Trust JWT verification and/or automate scheduled JWKS key rotation.
+- **Proto-Spec Sketch (Suggested Approach)**:
+  - Switch JWKS verifier config to Cloudflare Access `certs` URL + `Cf-Access-Jwt-Assertion` header validation mapped to `users.email`/`role`.
+- **Graduation / Promotion Criteria**:
+  - When Cloudflare Access Zero Trust is provisioned for admin team.
+
+### [TODO-007] Argon2id Password Hashing Upgrade (Workers Paid Tier)
+- **Status**: `PROPOSED`
+- **Discovered On**: 2026-11-15
+- **Discovered By / During**: SPEC-001 Spectre Audit (`D03`)
+- **Priority**: `P3 (Low)`
+- **Why Not Now?**: Phase 1 deploys on Cloudflare Workers Free tier (10 ms CPU limit), which cannot execute memory-hard Argon2id; WebCrypto PBKDF2-HMAC-SHA256 (`100,000` iterations) + Wrangler Secret `PASSWORD_PEPPER` fits Free tier.
+- **Context & Problem Statement**:
+  If the project upgrades to Workers Paid plan before migrating admin auth to Cloudflare Access Zero Trust (`TODO-006`), upgrade password hashes lazily on login from `$pbkdf2-sha256-peppered$...` to tuned Argon2id (`16 MiB`, `t=2`, `p=1`).
+- **Proto-Spec Sketch (Suggested Approach)**:
+  - Add Argon2id verifier/hasher behind versioned hash prefix dispatch.
+- **Graduation / Promotion Criteria**:
+  - Only needed if Paid Workers plan is active while email+password auth is still primary.
 
 ---
 

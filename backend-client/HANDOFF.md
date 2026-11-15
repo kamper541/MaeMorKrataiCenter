@@ -7,15 +7,15 @@
 
 ## 1. Executive Summary & Progress
 
-- **Project Status**: `INITIALIZED`
+- **Project Status**: `PLANNING`
 - **Last Updated**: 2026-11-15
-- **Active Session Agent**: `None (Awaiting Spec 01: Rust + Cloudflare Workers/D1/R2 Scaffold)`
-- **Progress Snapshot**: Project initialized with `gb-sdlc`. Frontend decoupling audit completed in `../docs/handover-frontend-decoupling.md`. Ready to draft Spec 01 (`SPEC-001`) in `docs/specs/`.
+- **Active Session Agent**: `Spectre -> Handing off to Planner`
+- **Progress Snapshot**: `SPEC-001` (`docs/specs/SPEC-001-infra-scaffold.md`) jointly approved (`spectre_audit: PASSED`, `status: APPROVED`), backed by research spike `RES-001` and decisions `D01`–`D04`. Ready for Planner (`02-planning-battleground.md`).
 
 ### Milestone Checklist
-- [ ] Milestone 1: Initial Core Specification & Planning
-- [ ] Milestone 2: Autonomous Agent Factory Implementation
-- [ ] Milestone 3: Functional Verification & Security Audit
+- [x] Milestone 1: Initial Core Specification (`SPEC-001` Approved)
+- [ ] Milestone 2: Planning & Battleground (`docs/plans/SPEC-001-infra-scaffold/`)
+- [ ] Milestone 3: Autonomous Agent Factory Implementation & Verification
 
 ---
 
@@ -34,8 +34,8 @@
 
 ## 3. Active In-Flight Work
 
-- **Active Spec**: None (Draft initial spec with Spectre in `docs/specs/`)
-- **Active Plan**: None
+- **Active Spec**: [docs/specs/SPEC-001-infra-scaffold.md](docs/specs/SPEC-001-infra-scaffold.md) (`APPROVED`, `spectre_audit: PASSED`)
+- **Active Plan**: None (Next: Planner creates `docs/plans/SPEC-001-infra-scaffold/`)
 - **Current Task In-Flight**: None
 - **Active Battleground**: None
 
@@ -44,10 +44,9 @@
 ## 4. Leftovers, Blockers & Next Steps
 
 ### Immediate Next Steps (For Next Agent / Developer)
-1. [ ] Read [Frontend Decoupling Handover](../docs/handover-frontend-decoupling.md) for the full inventory of `frontend-client` data/features moving to `backend-client` (`daily-cards.json`, `reading-cards.json`, `v3/manifest.json`, deck shuffle/draw lock, 3+1 reading engine, accounts, orders/credits, R2 card art).
-2. [ ] Start a conversation with **Spectre** (`.gb-sdlc/agents/spectre.md`) for **Spec 01 (AI-Native & Agentic-Native Backend Scaffold)** targeting **Rust** on **Cloudflare Workers + D1 + R2** (`docs/specs/SPEC-001-*.md`) following the 5-phase loop (Understand -> Confirm -> Interrogate -> Suggest Solutions -> Sign-Off).
-3. [ ] Conduct a live web research spike with **Researcher** (`docs/researches/`) on 2026 Rust `worker` crate / D1 / R2 / AI-native & agentic patterns on `wasm32-unknown-unknown`.
-4. [ ] Approve the spec to trigger autonomous planning and implementation, and define the OpenAPI contract in `../docs/api/client/`.
+1. [ ] Adopt **Planner** (`.gb-sdlc/agents/planner.md`) and follow Workflow 02 (`.gb-sdlc/workflows/02-planning-battleground.md`) to break down [docs/specs/SPEC-001-infra-scaffold.md](docs/specs/SPEC-001-infra-scaffold.md) into full-code tasks under `docs/plans/SPEC-001-infra-scaffold/` (including `00_OVERVIEW.md` and `NN_DOCUMENTATION.md`) and the OpenAPI 3.1 contract skeleton in `../docs/api/client/openapi.yaml`.
+2. [ ] Execute **Battleground** debates where competing implementation designs exist (e.g., `axum` + `worker` state bridging / Turnstile & JWKS guard traits).
+3. [ ] After `SPEC-001` completes verification, graduate `SPEC-002` (Public Cards Catalog & Daily Reading APIs backed by D1 + R2) from [docs/specs/OUT_OF_SCOPE.md](docs/specs/OUT_OF_SCOPE.md).
 
 ### Leftovers & Technical Nuances
 - **Leftover Tasks**: Initial setup completed. No residual tasks.
