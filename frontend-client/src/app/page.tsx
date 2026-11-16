@@ -102,7 +102,7 @@ export default function Home(){
     <p className="quiet">เปิดฟรีจากสำรับ 78 ใบ · ไม่ต้องสมัครสมาชิก</p>
     {error&&<p role="alert" className="error">{error}</p>}</div>
     <div className="status" role="status" aria-live="polite">{phase==='dealing'?'ตั้งคำถามไว้ในใจ แม่หมอกำลังเลือกไพ่ให้คุณ':phase==='revealed'?'ไพ่ของคุณเปิดแล้ว อ่านความหมายได้ด้านล่าง':'หายใจลึก ๆ แล้วเริ่มเมื่อคุณพร้อม'}</div>
-</div><span className="orbit orbit-one" aria-hidden="true">✦</span><span className="orbit orbit-two" aria-hidden="true">✧</span></div>
+</div><div className="stage-clouds" aria-hidden="true"><span className="stage-cloud stage-cloud-left"/><span className="stage-cloud stage-cloud-right"/></div><span className="orbit orbit-one" aria-hidden="true">✦</span><span className="orbit orbit-two" aria-hidden="true">✧</span></div>
   </section>
   {selected&&<section id="reading-details" className="reading-result" aria-labelledby="result-title" data-card-id={selected.id}>
    <div className="result-art"><button ref={resultButton} className="result-card-toggle" style={{aspectRatio:cardAspectRatio(selected)}} onClick={reopen} aria-label={'เปิดดูไพ่ '+selected.name+' อีกครั้ง'} aria-expanded={showReveal}><CardFace card={selected} className="result-card-face"/></button><p className="saved-card-note">ไพ่ของคุณยังอยู่ตรงนี้<br/>แตะเพื่อดูใบใหญ่ ✦</p></div>
