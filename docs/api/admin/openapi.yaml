@@ -1,0 +1,309 @@
+openapi: 3.1.0
+info:
+  title: MaeMorKratai Admin Backend API
+  version: 0.1.0
+  description: >
+    Infrastructure, health, JWKS, and Day-1 authentication contract for backend-admin
+    (SPEC-001). All endpoints enforce deny-by-default authorization except explicitly
+    documented public auth and health routes.
+servers:
+  - url: http://127.0.0.1:8787
+    description: Local Wrangler dev
+  - url: https://admin-api-staging.maemorkratai.com
+    description: Staging environment
+  - url: https://admin-api.maemorkratai.com
+    description: Production environment
+paths:
+  /health:
+    get:
+      summary: Service health check
+      operationId: getHealth
+      responses:
+        "200":
+          description: D1 and R2 bindings healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: One or more bindings unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /.well-known/jwks.json:
+    get:
+      summary: Public JSON Web Key Set (active and retiring keys)
+      operationId: getJwks
+      responses:
+        "200":
+          description: Public JWKS document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JwksDocument"
+  /v1/auth/login:
+    post:
+      summary: Authenticate admin or owner user
+      operationId: postLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Access token issued and HttpOnly refresh cookie set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: Malformed payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Inactive account or insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/auth/refresh:
+    post:
+      summary: Rotate refresh cookie and issue new access JWT
+      operationId: postRefresh
+      parameters:
+        - in: header
+          name: X-CSRF-Protection
+          required: true
+          schema:
+            type: string
+            enum: ["1"]
+      responses:
+        "200":
+          description: New access token issued and refresh cookie rotated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Invalid, expired, or replayed refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Disallowed Origin or missing CSRF header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/auth/logout:
+    post:
+      summary: Revoke current refresh session and clear cookie
+      operationId: postLogout
+      parameters:
+        - in: header
+          name: X-CSRF-Protection
+          required: true
+          schema:
+            type: string
+            enum: ["1"]
+      responses:
+        "200":
+          description: Session revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: logged_out
+        "403":
+          description: Disallowed Origin or missing CSRF header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/me:
+    get:
+      summary: Get authenticated admin/owner profile
+      operationId: getMe
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current authenticated admin or owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+        "401":
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Insufficient role or inactive account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/admin/auth/keys/rotate:
+    post:
+      summary: Rotate active ES256 signing key (owner only)
+      operationId: postRotateKeys
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: New active ES256 key created and prior active key retired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RotateKeyResponse"
+        "401":
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Owner role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, d1, r2]
+      properties:
+        status:
+          type: string
+          example: ok
+        d1:
+          type: string
+          example: ok
+        r2:
+          type: string
+          example: ok
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, expires_in, role]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_in:
+          type: integer
+        role:
+          type: string
+          enum: [owner, admin]
+    MeResponse:
+      type: object
+      required: [id, email, role, is_active]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [owner, admin]
+        is_active:
+          type: boolean
+    RotateKeyResponse:
+      type: object
+      required: [kid, alg, status]
+      properties:
+        kid:
+          type: string
+        alg:
+          type: string
+          enum: [ES256]
+        status:
+          type: string
+          enum: [active]
+    PublicJwk:
+      type: object
+      required: [kty, alg, kid]
+      properties:
+        kty:
+          type: string
+        use:
+          type: string
+        alg:
+          type: string
+        kid:
+          type: string
+        crv:
+          type: string
+        x:
+          type: string
+        y:
+          type: string
+        n:
+          type: string
+        e:
+          type: string
+    JwksDocument:
+      type: object
+      required: [keys]
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicJwk"
+    ErrorEnvelope:
+      type: object
+      required: [request_id, code, message]
+      properties:
+        request_id:
+          type: string
+        code:
+          type: string
+        message:
+          type: string

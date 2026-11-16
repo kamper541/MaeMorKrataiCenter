@@ -7,15 +7,15 @@
 
 ## 1. Executive Summary & Progress
 
-- **Project Status**: `INITIALIZED`
-- **Last Updated**: 2026-11-15
-- **Active Session Agent**: `None (Awaiting Spec 01: Rust + Cloudflare Workers/D1/R2 Scaffold)`
-- **Progress Snapshot**: Project initialized with `gb-sdlc`. Frontend decoupling audit completed in `../docs/handover-frontend-decoupling.md`. Ready to draft Spec 01 (`SPEC-001`) in `docs/specs/`.
+- **Project Status**: `IDLE (Verified)`
+- **Last Updated**: 2026-11-16
+- **Active Session Agent**: `Verifier & Security Auditor (SPEC-001-infra-scaffold PASSED)`
+- **Progress Snapshot**: `SPEC-001` (`SPEC-001-infra-scaffold`) verified and archived to [docs/plan-records/SPEC-001-infra-scaffold/](docs/plan-records/SPEC-001-infra-scaffold/). All 15 workspace tests pass, `wasm32-unknown-unknown` compiles cleanly, and the OWASP Top 10 security audit passed.
 
 ### Milestone Checklist
-- [ ] Milestone 1: Initial Core Specification & Planning
-- [ ] Milestone 2: Autonomous Agent Factory Implementation
-- [ ] Milestone 3: Functional Verification & Security Audit
+- [x] Milestone 1: Initial Core Specification (`SPEC-001` Approved)
+- [x] Milestone 2: Planning & Battleground (`docs/plan-records/SPEC-001-infra-scaffold/`)
+- [x] Milestone 3: Autonomous Agent Factory Implementation & Verification
 
 ---
 
@@ -23,18 +23,23 @@
 
 - **Working Components**:
   - `gb-sdlc Engine`: Settled guardrails, agent presets, workflows, and templates installed in `.gb-sdlc/`.
-  - `Workspace`: `docs/` directories scaffolded (`specs/`, `decisions/`, `architectures/`, `knowledges/`, `researches/`, `battlegrounds/`, `plans/`, `plan-records/`).
+  - `Battleground Records`:
+    - [docs/battlegrounds/SPEC-001-infra-scaffold/axum-worker-state-bridging/debate.md](docs/battlegrounds/SPEC-001-infra-scaffold/axum-worker-state-bridging/debate.md) (Option B: `AppPorts` + `WorkerEnvAdapter` + `MemoryStore`)
+    - [docs/battlegrounds/SPEC-001-infra-scaffold/crypto-jwt-jwks-and-pbkdf2/debate.md](docs/battlegrounds/SPEC-001-infra-scaffold/crypto-jwt-jwks-and-pbkdf2/debate.md) (Option B: Hybrid `SubtleCrypto` PBKDF2-100k on `wasm32` + pure-Rust `pbkdf2` on host, `p256`, `aes-gcm`, `rsa` verify-only)
+  - `Execution Plan Record`: [docs/plan-records/SPEC-001-infra-scaffold/00_OVERVIEW.md](docs/plan-records/SPEC-001-infra-scaffold/00_OVERVIEW.md)
+  - `Security Audit`: [docs/plan-records/SPEC-001-infra-scaffold/security-audit.md](docs/plan-records/SPEC-001-infra-scaffold/security-audit.md) (`PASSED` — OWASP Top 10 A01–A10)
+  - `Implemented Foundation (SPEC-001)`: Rust/Axum/Cloudflare Worker scaffold (`dev`/`staging`/`prod`), canonical D1 migrations (`users`, `sessions`, `jwks_keys`, `audit_events`), `make create-user` CLI, PBKDF2-100k + `PASSWORD_PEPPER`, AES-256-GCM envelope-encrypted `ES256`/`RS256` JWKS & key rotation, refresh token rotation with replay detection, deny-by-default RBAC (`owner > admin > user`), CORS/CSRF/rate-limit/error-envelope middleware, OpenAPI 3.1 contract (`../docs/api/admin/openapi.yaml`), and `docs/architectures/` + `docs/knowledges/features/` docs.
 - **Architecture & Tech Stack**:
-  - See `docs/architectures/tech-stack.md`
+  - See [docs/architectures/tech-stack.md](docs/architectures/tech-stack.md), [docs/architectures/database.md](docs/architectures/database.md), and [docs/architectures/cloud-infrastructure.md](docs/architectures/cloud-infrastructure.md)
 - **Verification Status**:
-  - Tests: `Pending (Awaiting implementation)`
-  - Security Audit: `Pending`
+  - Tests: `PASSED` — `cargo test --workspace` (15/15: 7 lib + 5 `spec_001_scenarios` + 3 `create-user`), `cargo check --target wasm32-unknown-unknown` passed; `cargo clippy --workspace --all-targets -- -D warnings` noted 4 non-blocking lints (logged to `TODO-009`).
+  - Security Audit: `PASSED` — OWASP Top 10 (A01–A10) audit passed ([security-audit.md](docs/plan-records/SPEC-001-infra-scaffold/security-audit.md)).
 
 ---
 
 ## 3. Active In-Flight Work
 
-- **Active Spec**: None (Draft initial spec with Spectre in `docs/specs/`)
+- **Active Spec**: None (`SPEC-001-infra-scaffold` verified and archived)
 - **Active Plan**: None
 - **Current Task In-Flight**: None
 - **Active Battleground**: None
@@ -44,20 +49,19 @@
 ## 4. Leftovers, Blockers & Next Steps
 
 ### Immediate Next Steps (For Next Agent / Developer)
-1. [ ] Read [Frontend Decoupling Handover](../docs/handover-frontend-decoupling.md) for the full inventory of admin/knowledge/content/social features moving to `backend-admin` (knowledge curation & release publishing, `needs_owner` escalation queue, A/B eval harness, orders/reconciliation, Social Center & competitor research, Content Studio durable jobs + Mac worker pull API, R2 private audio/studio storage).
-2. [ ] Start a conversation with **Spectre** (`.gb-sdlc/agents/spectre.md`) for **Spec 01 (AI-Native & Agentic-Native Backend Scaffold)** targeting **Rust** on **Cloudflare Workers + D1 + R2** (`docs/specs/SPEC-001-*.md`) following the 5-phase loop (Understand -> Confirm -> Interrogate -> Suggest Solutions -> Sign-Off).
-3. [ ] Conduct a live web research spike with **Researcher** (`docs/researches/`) on 2026 Rust `worker` crate / D1 / R2 / Queues / AI-native & agentic patterns on `wasm32-unknown-unknown`.
-4. [ ] Approve the spec to trigger autonomous planning and implementation, and define the OpenAPI contract in `../docs/api/admin/`.
+- **Immediate Next Steps**: Ready for next feature spec session with Spectre (e.g., graduate `SPEC-002` from [docs/specs/OUT_OF_SCOPE.md](docs/specs/OUT_OF_SCOPE.md)).
+- [x] Spawn **Verifier** (`.gb-sdlc/agents/verifier.md`) to verify Scenarios 1-6 and complete the OWASP Top 10 security audit.
+- [ ] Graduate `SPEC-002` from [docs/specs/OUT_OF_SCOPE.md](docs/specs/OUT_OF_SCOPE.md).
 
 ### Leftovers & Technical Nuances
-- **Leftover Tasks**: Initial setup completed. No residual tasks.
-- **Known Blockers / Warnings**: None.
+- **Known Blockers / Warnings**: Ensure `wrangler.toml` placeholder D1 `database_id`s are replaced with provisioned Cloudflare D1 IDs before remote `--env staging` / `--env prod` deployment (`--local` works out of the box).
+- **Non-Blocking Follow-Ups**: See `TODO-009` in [TODO.md](./TODO.md) for 4 minor Clippy lints and login timing parity hardening.
 
 ---
 
 ## 5. Proto-Specs & Deferred Ideas
 
-- For improvements or architectural insights discovered during execution that are worth noting for future specs, see [TODO.md](./TODO.md).
+- For improvements or architectural insights discovered during planning/execution that are worth noting for future specs, see [TODO.md](./TODO.md).
 
 ---
 
@@ -67,4 +71,4 @@
 - **Architectures**: [docs/architectures/](docs/architectures/)
 - **Decisions Log**: [docs/decisions/](docs/decisions/)
 - **Researches & Spikes**: [docs/researches/](docs/researches/)
-- **Completed Plan Records**: [docs/plan-records/](docs/plan-records/)
+- **Completed Plan Records**: [docs/plan-records/](docs/plan-records/) ([SPEC-001-infra-scaffold](docs/plan-records/SPEC-001-infra-scaffold/00_OVERVIEW.md) | [security-audit.md](docs/plan-records/SPEC-001-infra-scaffold/security-audit.md))

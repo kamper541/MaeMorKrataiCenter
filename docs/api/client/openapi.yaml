@@ -1,0 +1,64 @@
+openapi: 3.1.0
+info:
+  title: MaeMorKratai Client Backend API
+  version: 0.1.0
+  description: >
+    Infrastructure and public health contract for backend-client (SPEC-001).
+    Binds exclusively to shared D1 (read-only published posture in Phase 1)
+    and PUBLIC_ASSETS R2 bucket.
+servers:
+  - url: http://127.0.0.1:8788
+    description: Local Wrangler dev
+  - url: https://api-staging.maemorkratai.com
+    description: Staging environment
+  - url: https://api.maemorkratai.com
+    description: Production environment
+paths:
+  /health:
+    get:
+      summary: Public service health check
+      operationId: getHealth
+      responses:
+        "200":
+          description: Shared D1 and PUBLIC_ASSETS R2 bindings healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "503":
+          description: D1 or PUBLIC_ASSETS R2 dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, d1, public_r2]
+      properties:
+        status:
+          type: string
+          example: ok
+        d1:
+          type: string
+          example: ok
+        public_r2:
+          type: string
+          example: ok
+    ErrorEnvelope:
+      type: object
+      required: [request_id, code, message]
+      properties:
+        request_id:
+          type: string
+        code:
+          type: string
+        message:
+          type: string

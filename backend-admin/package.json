@@ -1,0 +1,13 @@
+{
+  "name": "backend-admin-worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:prod": "wrangler deploy --env prod"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
