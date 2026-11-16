@@ -6,7 +6,7 @@ import {prefersStillScene} from '../lib/motion-lite';
 import cardsData from '../lib/reading-cards.json';
 import CardFace from './CardFace';
 import {cardAspectRatio} from '../lib/card-art';
-import {contexts, getDailyCard, DailyReading, type Context} from './DailyReading';
+import {getDailyCard, DailyReading} from './DailyReading';
 type Card=typeof cardsData[number];
 const source='https://chatgpt.com/share/6ad48c4f-7994-83ec-a782-621e623e23c6';
 function randomIndex(n:number){const a=new Uint32Array(1);const ceiling=Math.floor(4294967296/n)*n;do{crypto.getRandomValues(a);}while(a[0]>=ceiling);return a[0]%n;}
@@ -35,7 +35,7 @@ export default function Home(){
  const sourceAnchor=useRef<Anchor|null>(null),resultButton=useRef<HTMLButtonElement>(null);
  const [showReveal,setShowReveal]=useState(false);
  const [ready,setReady]=useState(false),[phase,setPhase]=useState<'idle'|'dealing'|'revealed'>('idle');
- const [context,setContext]=useState<Context>('คนโสด'),[selected,setSelected]=useState<Card|null>(null);
+ const [selected,setSelected]=useState<Card|null>(null);
  const [error,setError]=useState(''),[detail,setDetail]=useState<Card|null>(null);
  const [reduced,setReduced]=useState(false),[detailPlaying,setDetailPlaying]=useState(true);
  
@@ -94,24 +94,24 @@ export default function Home(){
     <p className="intro-copy">ในคืนที่มีคำถามอยู่ในใจ<br/>แม่หมอกระต่ายจะเปิดไพ่หนึ่งใบให้คุณ<br/>ค่อย ๆ ฟัง แล้วเลือกสิ่งที่อ่อนโยนกับหัวใจ</p>
 
    </div>
-   <div className="stage"><div className="stage-top"><span>THE MOONLIT ROOM</span><span>✧</span></div><Scene cardAnchor={selected&&!showReveal&&!videoOn?sourceAnchor.current:null} onReopen={reopen} frameRef={frameRef} onReady={sceneReady} onReveal={reveal} onError={failure} drawVideo={stillScene&&!reduced?{ref:drawVideo,on:videoOn,onEnded:finishVideo,idle:idleVideo,idleOn}:null}/><div className="stage-bottom"><span>MAEMORKRATAI</span><small>ห้องไพ่ใต้แสงจันทร์</small>
+   <div className="stage"><div className="stage-top"><span>THE MOONLIT ROOM</span><span>✧</span></div><Scene cardAnchor={selected&&!showReveal&&!videoOn?sourceAnchor.current:null} onReopen={reopen} frameRef={frameRef} onReady={sceneReady} onReveal={reveal} onError={failure} drawVideo={stillScene&&!reduced?{ref:drawVideo,on:videoOn,onEnded:finishVideo,idle:idleVideo,idleOn}:null}/><div className="stage-bottom">
     <div className="reading-form">
-    <button className="draw-button" onClick={draw} disabled={!ready||phase==='dealing'||showReveal}><span aria-hidden="true">✦</span>{!ready?'กำลังเปิดห้องไพ่…':phase==='dealing'?'แม่หมอกำลังสับไพ่…':phase==='revealed'?'ตั้งจิต แล้วเปิดไพ่ใหม่':'ตั้งจิต แล้วเปิดไพ่'}</button>
+    <h2 className="daily-draw-title"><span aria-hidden="true">✦</span>คำทำนายดวงวันนี้<span aria-hidden="true">✦</span></h2>
+    <button className="draw-button" onClick={draw} disabled={!ready||phase==='dealing'||showReveal}><span aria-hidden="true">✦</span>{!ready?'กำลังเปิดห้องไพ่…':phase==='dealing'?'แม่หมอกำลังสับไพ่…':'เปิดดูดวงรายวันเลย'}<span aria-hidden="true">✦</span></button>
 {selected&&<button className="stage-reopen" onClick={reopen} disabled={showReveal} aria-label="เปิดไพ่ใบเดิมจากมือแม่หมอ"><span aria-hidden="true">✦</span> ดูไพ่ของคุณอีกครั้ง</button>}
-    <div className="stage-preferences"><label htmlFor="context">วันนี้อยากมองความรักในมุมไหน</label><select id="context" value={context} disabled={phase==='dealing'} onChange={e=>setContext(e.target.value as Context)}>{contexts.map(s=><option key={s}>{s}</option>)}</select></div>
-    <Link className="three-card-entry" href="/reading/"><span>อยากเลือกไพ่ด้วยตัวเอง?</span><strong>เปิดไพ่ 3 ใบ <span aria-hidden="true">→</span></strong></Link><p className="quiet">เปิดฟรีจากสำรับ 78 ใบ · ไม่ต้องสมัครสมาชิก</p>
+    <p className="quiet">เปิดฟรีจากสำรับ 78 ใบ · ไม่ต้องสมัครสมาชิก</p>
     {error&&<p role="alert" className="error">{error}</p>}</div>
     <div className="status" role="status" aria-live="polite">{phase==='dealing'?'ตั้งคำถามไว้ในใจ แม่หมอกำลังเลือกไพ่ให้คุณ':phase==='revealed'?'ไพ่ของคุณเปิดแล้ว อ่านความหมายได้ด้านล่าง':'หายใจลึก ๆ แล้วเริ่มเมื่อคุณพร้อม'}</div>
 </div><span className="orbit orbit-one" aria-hidden="true">✦</span><span className="orbit orbit-two" aria-hidden="true">✧</span></div>
   </section>
   {selected&&<section id="reading-details" className="reading-result" aria-labelledby="result-title" data-card-id={selected.id}>
    <div className="result-art"><button ref={resultButton} className="result-card-toggle" style={{aspectRatio:cardAspectRatio(selected)}} onClick={reopen} aria-label={'เปิดดูไพ่ '+selected.name+' อีกครั้ง'} aria-expanded={showReveal}><CardFace card={selected} className="result-card-face"/></button><p className="saved-card-note">ไพ่ของคุณยังอยู่ตรงนี้<br/>แตะเพื่อดูใบใหญ่ ✦</p></div>
-   <div className="result-copy"><p className="eyebrow">YOUR CARD · ดวงรายวัน</p><h2 id="result-title">{selected.name}</h2><p className="keyword">{getDailyCard(selected.id).content.theme}</p><div className="fine-line"/><DailyReading card={getDailyCard(selected.id)} context={context} allLove/><p className="gentle">ใช้คำอ่านนี้เป็นแนวทางทบทวนตัวเอง สิ่งที่เกิดขึ้นยังขึ้นอยู่กับการเลือกและการกระทำในชีวิตจริง</p><a className="text-link" href={source} target="_blank" rel="noreferrer">อ่านแชทความหมายไพ่รายวัน ↗</a></div>
+   <div className="result-copy"><p className="eyebrow">YOUR CARD · ดวงรายวัน</p><h2 id="result-title">{selected.name}</h2><p className="keyword">{getDailyCard(selected.id).content.theme}</p><div className="fine-line"/><DailyReading card={getDailyCard(selected.id)} allLove/><p className="gentle">ใช้คำอ่านนี้เป็นแนวทางทบทวนตัวเอง สิ่งที่เกิดขึ้นยังขึ้นอยู่กับการเลือกและการกระทำในชีวิตจริง</p><a className="text-link" href={source} target="_blank" rel="noreferrer">อ่านแชทความหมายไพ่รายวัน ↗</a></div>
   </section>}
   <section className="collection" id="collection"><div className="section-heading"><div><p className="eyebrow">THE TAROT DECK</p><h2>สำรับ 78 ใบของแม่หมอกระต่าย</h2></div><p>ตัวละครที่คุ้นเคย ในเรื่องราวที่ต่างกัน<br/>แตะไพ่เพื่อชมภาพและอ่านความหมายรายวัน</p></div><div className="card-grid">{cardsData.map((card,i)=><button className="gallery-card" key={card.id} onClick={()=>{setDetail(card);setDetailPlaying(!reduced);}} aria-label={'ดูไพ่ '+card.name}><span className="card-number">{String(i+1).padStart(2,'0')}</span><CardFace card={card} lazy/><span className="card-caption">{card.name}<small>{getDailyCard(card.id).content.theme}</small></span></button>)}</div></section>
   <section className="about" id="about"><span className="big-moon" aria-hidden="true">☾</span><div><p className="eyebrow">A DECK, WITH A LITTLE HEART</p><h2>ไพ่หนึ่งใบ ชวนมอง<br/>เรื่องของวันนี้อีกมุม</h2><p>เลือกไพ่จากสำรับ 78 ใบ แล้วอ่านความหมายรายวันทั้งภาพรวม การงาน การเงิน ความรัก และข้อความจากแม่หมอ ภาพจากสำรับใหม่กำลังทยอยมา ใบที่ยังไม่มีภาพจะแสดงชื่อไพ่ให้ก่อน</p><p className="subtle">ไพ่ใช้เพื่อความบันเทิงและการทบทวนใจ ไม่ใช่คำยืนยันอนาคต คำอ่านนี้อิงแชทความหมายไพ่รายวันที่เจ้าของเลือกใช้</p><a className="text-link" href={source} target="_blank" rel="noreferrer">แชทความหมายต้นทาง ↗</a></div></section>
   <footer><span>MaeMorKratai <small>แม่หมอกระต่าย</small></span><span>ห้องไพ่ใต้แสงจันทร์ · 2026</span><a href="#reading">กลับไปเปิดไพ่ ↑</a></footer>
-  {detail&&<div className="modal-backdrop" onClick={()=>setDetail(null)}><section role="dialog" aria-modal="true" aria-labelledby="detail-title" className="card-modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setDetail(null)} autoFocus aria-label="ปิดรายละเอียดไพ่">×</button><div className={'animated-card generated-card '+(detailPlaying?'card-breathing':'')} style={{aspectRatio:cardAspectRatio(detail)}}><CardFace card={detail}/><button className="motion-toggle" onClick={()=>setDetailPlaying(!detailPlaying)}>{detailPlaying?'หยุดภาพเคลื่อนไหว':'เล่นภาพเคลื่อนไหว'}</button></div><div className="card-info"><p className="eyebrow">MAEMORKRATAI · ดวงรายวัน</p><h2 id="detail-title">{detail.name}</h2><p className="keyword">{getDailyCard(detail.id).content.theme}</p><DailyReading card={getDailyCard(detail.id)} context={context} allLove/><a className="text-link" href={source} target="_blank" rel="noreferrer">ความหมายจากแชทอ้างอิง ↗</a></div></section></div>}
+  {detail&&<div className="modal-backdrop" onClick={()=>setDetail(null)}><section role="dialog" aria-modal="true" aria-labelledby="detail-title" className="card-modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setDetail(null)} autoFocus aria-label="ปิดรายละเอียดไพ่">×</button><div className={'animated-card generated-card '+(detailPlaying?'card-breathing':'')} style={{aspectRatio:cardAspectRatio(detail)}}><CardFace card={detail}/><button className="motion-toggle" onClick={()=>setDetailPlaying(!detailPlaying)}>{detailPlaying?'หยุดภาพเคลื่อนไหว':'เล่นภาพเคลื่อนไหว'}</button></div><div className="card-info"><p className="eyebrow">MAEMORKRATAI · ดวงรายวัน</p><h2 id="detail-title">{detail.name}</h2><p className="keyword">{getDailyCard(detail.id).content.theme}</p><DailyReading card={getDailyCard(detail.id)} allLove/><a className="text-link" href={source} target="_blank" rel="noreferrer">ความหมายจากแชทอ้างอิง ↗</a></div></section></div>}
   {selected&&showReveal&&<CardReveal card={selected} meaning={getDailyCard(selected.id).content.theme} detail={getDailyCard(selected.id).content.rabbit_message} context="ดวงรายวัน" reduced={reduced} getOrigin={getOrigin} onClose={closeReveal} onDetails={detailsBelow}/>}
  </main>;
 }
