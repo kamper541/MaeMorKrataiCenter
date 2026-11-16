@@ -4,5 +4,8 @@ out/
 dist/
 *.tsbuildinfo
 .DS_Store
+.wrangler/
+.vercel/
+.dev.vars*
 .env*
 !.env.example

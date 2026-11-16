@@ -31,16 +31,16 @@ function SourceText({text}: {text: string}) {
     ? <strong key={index}>{part.slice(2, -2)}</strong> : part)}</>;
 }
 
-export function DailyReading({card, context, allLove = false}: {card: DailyCard; context: Context; allLove?: boolean}) {
+export function DailyReading({card, context, allLove = false}: {card: DailyCard; context?: Context; allLove?: boolean}) {
   const content = card.content;
-  const love = getLoveReading(card, context);
+  const love = context ? getLoveReading(card, context) : null;
   return <div className="daily-reading">
     <section><h3>ภาพรวมวันนี้</h3><p><SourceText text={content.overview}/></p></section>
     <section><h3>การงาน</h3><p><SourceText text={content.work}/></p></section>
     <section><h3>การเงิน</h3><p><SourceText text={content.money}/></p></section>
-    <section><h3>ความรัก · {context}</h3><p><SourceText text={love ?? 'แชทต้นทางยังไม่มีคำอ่านสำหรับสถานะนี้ของไพ่ใบนี้'}/></p></section>
+    {context && <section><h3>ความรัก · {context}</h3><p><SourceText text={love ?? 'แชทต้นทางยังไม่มีคำอ่านสำหรับสถานะนี้ของไพ่ใบนี้'}/></p></section>}
     <section><h3>ข้อความจากแม่หมอ</h3><p><SourceText text={content.rabbit_message}/></p></section>
     <div className="daily-extras"><p><strong>สีประจำวัน</strong> {content.colors}</p><p><strong>คำยืนยันกับตัวเอง</strong> {content.affirmation}</p></div>
-    {allLove && <div className="reading-full"><h3>ความรักในสถานะอื่น</h3><dl>{contexts.filter(label => label !== context).map(label => <div key={label}><dt>{label}</dt><dd>{getLoveReading(card, label) ?? 'ยังไม่มีคำอ่านในแชทต้นทาง'}</dd></div>)}</dl></div>}
+    {allLove && <div className="reading-full"><h3>{context ? 'ความรักในสถานะอื่น' : 'ความรักตามสถานะ'}</h3><dl>{contexts.filter(label => label !== context).map(label => <div key={label}><dt>{label}</dt><dd>{getLoveReading(card, label) ?? 'ยังไม่มีคำอ่านในแชทต้นทาง'}</dd></div>)}</dl></div>}
   </div>;
 }
