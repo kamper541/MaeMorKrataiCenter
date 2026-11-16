@@ -1,0 +1,3 @@
+# Copy to .dev.vars for local wrangler dev (never commit .dev.vars)
+PASSWORD_PEPPER="replace-with-local-dev-32-byte-hex-or-base64-pepper"
+KEY_ENCRYPTION_KEY="MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="

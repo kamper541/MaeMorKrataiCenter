@@ -18,6 +18,7 @@
 | `TODO-003` | 3+1 Reading Engine, Server Shuffle/Lock & Escalation Flow | High | PROPOSED | SPEC-001 Scoping | - |
 | `TODO-004` | Customer Orders, Credits Ledger & Payment Webhooks | Medium | PROPOSED | SPEC-001 Scoping | - |
 | `TODO-005` | Customer Accounts, Auth & Saved Reading History | Medium | PROPOSED | SPEC-001 Scoping | - |
+| `TODO-006` | Infra Hardening: Clippy Cast Cleanup, HTTPS URL Guard & Structured Audit Logs | Low | PROPOSED | SPEC-001 Security Audit | - |
 
 ---
 
@@ -87,6 +88,21 @@
   - Leverage `D03` JWKS verification scaffold + `users` (`role = 'user'`) schema.
 - **Graduation / Promotion Criteria**:
   - Required before paid beta (`TODO-004`).
+
+### [TODO-006] Infra Hardening: Clippy Cast Cleanup, HTTPS URL Guard & Structured Audit Logs
+- **Status**: `PROPOSED`
+- **Discovered On**: 2026-11-16
+- **Discovered By / During**: Verifier & Security Auditor (`SPEC-001-infra-scaffold`)
+- **Priority**: `P3 (Low)`
+- **Why Not Now?**: Non-blocking observations from `SPEC-001` verification; all core acceptance criteria and OWASP A01–A10 checks passed.
+- **Context & Problem Statement**:
+  Minor code hygiene and defense-in-depth enhancements identified during `SPEC-001` audit.
+- **Proto-Spec Sketch (Suggested Approach)**:
+  - Remove unnecessary `as u64` cast in `src/adapters/worker_env.rs:141` (`clippy::unnecessary_cast`).
+  - Enforce `https://` scheme validation on `TURNSTILE_VERIFY_URL` and `JWKS_URL` in `WorkerClientAdapter::load_config` for `staging` and `prod`.
+  - Emit structured, PII/token-redacted security audit logs for `401`/`403`/`429`/`503` responses.
+- **Graduation / Promotion Criteria**:
+  - Fold into `SPEC-002` or a dedicated hardening pass.
 
 ---
 

@@ -21,6 +21,7 @@
 | `TODO-006` | Cloudflare Access Zero Trust Migration & Key Rotation Automation | Medium | PROPOSED | SPEC-001 Auth Design | - |
 | `TODO-007` | Argon2id Password Hashing Upgrade (Workers Paid Tier) | Low | PROPOSED | SPEC-001 Spectre Audit | - |
 | `TODO-008` | Scheduled D1 Session & Retiring-JWK Cleanup Cron | Low | PROPOSED | SPEC-001 Planning | - |
+| `TODO-009` | Code Quality & Auth Hardening Follow-Ups (Clippy, Timing Parity, `cargo-audit`) | Low | PROPOSED | SPEC-001 Security Audit | - |
 
 ---
 
@@ -129,6 +130,22 @@
   - Add a Cloudflare Worker `[triggers]` `crons` handler (`#[event(scheduled)]`) deleting expired `sessions` beyond retention window and transitioning expired `retiring` keys to `revoked`.
 - **Graduation / Promotion Criteria**:
   - When production auth traffic grows or before `TODO-006` cutover.
+
+### [TODO-009] Code Quality & Auth Hardening Follow-Ups (Clippy, Timing Parity, `cargo-audit`)
+- **Status**: `PROPOSED`
+- **Discovered On**: 2026-11-16
+- **Discovered By / During**: SPEC-001 Verifier & Security Audit
+- **Priority**: `P3 (Low)`
+- **Why Not Now?**: Non-blocking items discovered during final verification of `SPEC-001`; all 15 tests and `wasm32-unknown-unknown` check pass.
+- **Context & Problem Statement**:
+  1. `cargo clippy --workspace --all-targets -- -D warnings` reports 4 minor lints (`dead_code` on `DbSessionRow.token_hash` in `src/adapters/worker_env.rs:122`, `clippy::unnecessary_cast` at `src/adapters/worker_env.rs:514`, `clippy::cloned_ref_to_slice_refs` at `src/auth/jwt.rs:287`, and `clippy::let_unit_value` at `src/auth/password.rs:156`).
+  2. `handle_login` in `src/routes/auth.rs` returns early when an email is not found before running PBKDF2, creating a minor timing difference between unknown emails and wrong passwords.
+  3. `cargo-audit` is not yet wired into CI to scan `Cargo.lock` for advisories.
+- **Proto-Spec Sketch (Suggested Approach)**:
+  - Clean up the 4 Clippy lints and enforce `cargo clippy --workspace --all-targets -- -D warnings` + `cargo audit` in CI.
+  - Execute a dummy PBKDF2 verification on unknown email in `handle_login` to equalize login response timing.
+- **Graduation / Promotion Criteria**:
+  - Bundle into the next maintenance or `SPEC-002` prep PR.
 
 ---
 

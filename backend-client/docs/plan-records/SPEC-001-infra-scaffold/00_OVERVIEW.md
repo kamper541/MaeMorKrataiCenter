@@ -15,8 +15,8 @@ Build the `backend-client` Rust Worker scaffold targeting `wasm32-unknown-unknow
 
 ## 3. Task Manifest
 > **Execution Policy**: Each task below MUST be executed by a dedicated, fresh **Executor / Coder** agent. Before execution, each agent must read this `00_OVERVIEW.md` file first. Strictly 1 agent per 1 task.
-- [ ] `01_RUST_CRATE_AND_WRANGLER.md` — Configure Cargo crate, `.cargo/config.toml`, `wrangler.toml` (`dev`/`staging`/`prod`, zero `PRIVATE_STORAGE`, zero `migrations_dir`), `.dev.vars.example`, `package.json`, `Makefile`, `src/config.rs`, and `src/error.rs`.
-- [ ] `02_PORTS_AND_WORKER_ADAPTERS.md` — Define `ClientPorts` traits (`HealthPort`, `RateLimitPort`), `WorkerClientAdapter` (`DB` + `PUBLIC_ASSETS` + `PUBLIC_RATE_LIMITER`), and `MemoryClientStore`.
-- [ ] `03_SECURITY_MIDDLEWARE_AND_GUARDS.md` — Implement request ID, strict CORS allowlist, security headers, body size cap, rate-limit middleware, `TurnstileGuard`, and `JwksVerifier` (`ES256`/`RS256`).
-- [ ] `04_ROUTES_TESTS_AND_OPENAPI.md` — Implement `GET /health`, `build_router`, `#[event(fetch)]` Worker entrypoint, `tests/spec_001_scenarios.rs`, and `../docs/api/client/openapi.yaml`.
-- [ ] `05_DOCUMENTATION.md` — Write permanent feature documentation to `docs/knowledges/features/infra-scaffold-and-security.md` and update `docs/architectures/`.
+- [x] `01_RUST_CRATE_AND_WRANGLER.md` — Configure Cargo crate, `.cargo/config.toml`, `wrangler.toml` (`dev`/`staging`/`prod`, zero `PRIVATE_STORAGE`, zero `migrations_dir`), `.dev.vars.example`, `package.json`, `Makefile`, `src/config.rs`, and `src/error.rs`.
+- [x] `02_PORTS_AND_WORKER_ADAPTERS.md` — Define `ClientPorts` traits (`HealthPort`, `RateLimitPort`), `WorkerClientAdapter` (`DB` + `PUBLIC_ASSETS` + `PUBLIC_RATE_LIMITER`), and `MemoryClientStore`.
+- [x] `03_SECURITY_MIDDLEWARE_AND_GUARDS.md` — Implement request ID, strict CORS allowlist, security headers, body size cap, rate-limit middleware, `TurnstileGuard`, and `JwksVerifier` (`ES256`/`RS256`).
+- [x] `04_ROUTES_TESTS_AND_OPENAPI.md` — Implement `GET /health`, `build_router`, `#[event(fetch)]` Worker entrypoint, `tests/spec_001_scenarios.rs`, and `../docs/api/client/openapi.yaml`.
+- [x] `05_DOCUMENTATION.md` — Write permanent feature documentation to `docs/knowledges/features/infra-scaffold-and-security.md` and update `docs/architectures/`.

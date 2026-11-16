@@ -7,15 +7,15 @@
 
 ## 1. Executive Summary & Progress
 
-- **Project Status**: `EXECUTING`
+- **Project Status**: `IDLE (Verified)`
 - **Last Updated**: 2026-11-16
-- **Active Session Agent**: `Planner -> Handing off to Executor / Coder`
-- **Progress Snapshot**: `SPEC-001` Battleground debates resolved (`axum-worker-state-bridging`, `turnstile-and-jwks-guard-design`) and full-code plan authored at `docs/plans/SPEC-001-infra-scaffold/` (`00_OVERVIEW.md` through `05_DOCUMENTATION.md`). Ready for sequential 1-agent-per-task execution.
+- **Active Session Agent**: `Verifier & Security Auditor (SPEC-001 Verified -> Handing over)`
+- **Progress Snapshot**: `SPEC-001` (`SPEC-001-infra-scaffold`) verified and archived to `docs/plan-records/SPEC-001-infra-scaffold/`. All 5 acceptance scenarios, `D01`–`D04`, `cargo test` (8/8), `cargo check --target wasm32-unknown-unknown`, and OWASP Top 10 (A01–A10) security audit passed.
 
 ### Milestone Checklist
 - [x] Milestone 1: Initial Core Specification (`SPEC-001` Approved)
 - [x] Milestone 2: Planning & Battleground (`docs/plans/SPEC-001-infra-scaffold/`)
-- [ ] Milestone 3: Autonomous Agent Factory Implementation & Verification
+- [x] Milestone 3: Autonomous Agent Factory Implementation & Verification
 
 ---
 
@@ -26,34 +26,37 @@
   - `Battleground Records`:
     - [docs/battlegrounds/SPEC-001-infra-scaffold/axum-worker-state-bridging/debate.md](docs/battlegrounds/SPEC-001-infra-scaffold/axum-worker-state-bridging/debate.md) (Option B: `ClientPorts` + `WorkerClientAdapter` + `MemoryClientStore`)
     - [docs/battlegrounds/SPEC-001-infra-scaffold/turnstile-and-jwks-guard-design/debate.md](docs/battlegrounds/SPEC-001-infra-scaffold/turnstile-and-jwks-guard-design/debate.md) (Option B: Trait-based `TurnstileTransport` + `JwksSource` with `TurnstileGuard` + `JwksVerifier`)
-  - `Execution Plan`: [docs/plans/SPEC-001-infra-scaffold/00_OVERVIEW.md](docs/plans/SPEC-001-infra-scaffold/00_OVERVIEW.md)
+  - `Archived Plan & Audit`: [docs/plan-records/SPEC-001-infra-scaffold/00_OVERVIEW.md](docs/plan-records/SPEC-001-infra-scaffold/00_OVERVIEW.md) | [security-audit.md](docs/plan-records/SPEC-001-infra-scaffold/security-audit.md)
+  - `Task 01 (Rust Crate, Wrangler, Config & Error Envelope)`: `Cargo.toml`, `.cargo/config.toml`, `wrangler.toml`, `package.json`, `.dev.vars.example`, `Makefile`, `.gitignore`, `src/config.rs`, `src/error.rs`, and temporary `src/lib.rs` stub.
+  - `Task 02 (Ports & Worker Adapters)`: `src/ports.rs` (`HealthPort`, `RateLimitPort`, `SecretProvider`, `Clock`, `ClientPorts`), `src/adapters/mod.rs`, `src/adapters/worker_env.rs` (`WorkerClientAdapter` binding `DB`, `PUBLIC_ASSETS`, `PUBLIC_RATE_LIMITER` only), `src/adapters/memory.rs` (`MemoryClientStore`), and updated `src/lib.rs`.
+  - `Task 03 (Security Middleware & Guards)`: `src/middleware/mod.rs`, `src/middleware/security.rs` (`RequestId`, `security_pipeline_middleware`, `ValidatedJson`), `src/security/mod.rs`, `src/security/turnstile.rs` (`TurnstileTransport`, `WorkerTurnstileTransport`, `TurnstileGuard`, `VerifiedTurnstile`), `src/security/jwks.rs` (`JwksSource`, `WorkerJwksSource`, `JwksVerifier`, `verify_jwt_against_keys` for `ES256`/`RS256`, `VerifiedJwtClaims`), and updated `src/lib.rs`.
+  - `Task 04 (Health Route, Worker Entrypoint, SPEC-001 Tests & OpenAPI)`: `src/routes/mod.rs`, `src/routes/health.rs` (`get_health`, `fallback_not_found`), `src/lib.rs` (`build_router`, `#[event(fetch)]`), `tests/spec_001_scenarios.rs` (Scenarios 1-5), and `../docs/api/client/openapi.yaml` (OpenAPI 3.1 contract).
+  - `Task 05 (Documentation & Architecture Update)`: `docs/knowledges/features/infra-scaffold-and-security.md`, `docs/architectures/tech-stack.md`, `docs/architectures/database.md`, and `docs/architectures/cloud-infrastructure.md`.
 - **Architecture & Tech Stack**:
-  - See `docs/architectures/tech-stack.md` (updated during `05_DOCUMENTATION.md`)
+  - See [docs/architectures/tech-stack.md](docs/architectures/tech-stack.md), [docs/architectures/database.md](docs/architectures/database.md), and [docs/architectures/cloud-infrastructure.md](docs/architectures/cloud-infrastructure.md)
 - **Verification Status**:
-  - Tests: `Pending (Awaiting Executor / Coder execution of tasks 01-05)`
-  - Security Audit: `Pending`
+  - Tests: `cargo test` PASSED (3 unit + 5 integration = 8/8); `cargo check --target wasm32-unknown-unknown` PASSED; `cargo clippy --all-targets -- -D warnings` flagged 1 non-blocking lint (`clippy::unnecessary_cast` at `src/adapters/worker_env.rs:141`, logged as `TODO-006`).
+  - Security Audit: `PASSED` (OWASP A01–A10 verified; see [security-audit.md](docs/plan-records/SPEC-001-infra-scaffold/security-audit.md))
 
 ---
 
 ## 3. Active In-Flight Work
 
-- **Active Spec**: [docs/specs/SPEC-001-infra-scaffold.md](docs/specs/SPEC-001-infra-scaffold.md) (`APPROVED`, `spectre_audit: PASSED`)
-- **Active Plan**: [docs/plans/SPEC-001-infra-scaffold/00_OVERVIEW.md](docs/plans/SPEC-001-infra-scaffold/00_OVERVIEW.md)
-- **Current Task In-Flight**: None (Next: `01_RUST_CRATE_AND_WRANGLER.md`)
-- **Active Battleground**: None (Both debates resolved)
+- **Active Spec**: None (`SPEC-001` completed & verified)
+- **Active Plan**: None (Archived to `docs/plan-records/SPEC-001-infra-scaffold/`)
+- **Current Task In-Flight**: None
+- **Active Battleground**: None
 
 ---
 
 ## 4. Leftovers, Blockers & Next Steps
 
 ### Immediate Next Steps (For Next Agent / Developer)
-1. [ ] Spawn a fresh **Executor / Coder** agent (`.gb-sdlc/agents/executor.md`) for [docs/plans/SPEC-001-infra-scaffold/01_RUST_CRATE_AND_WRANGLER.md](docs/plans/SPEC-001-infra-scaffold/01_RUST_CRATE_AND_WRANGLER.md), reading `00_OVERVIEW.md` first.
-2. [ ] Execute tasks `02` through `05` sequentially, spawning 1 fresh Executor / Coder agent per task.
-3. [ ] After `05_DOCUMENTATION.md` completes, spawn **Verifier** (`.gb-sdlc/agents/verifier.md`) to verify Scenarios 1-5 and complete the OWASP Top 10 security audit.
-4. [ ] After `SPEC-001` completes verification, graduate `SPEC-002` (Public Cards Catalog & Daily Reading APIs backed by D1 + R2) from [docs/specs/OUT_OF_SCOPE.md](docs/specs/OUT_OF_SCOPE.md).
+Ready for next feature spec session with Spectre:
+1. [ ] Graduate `SPEC-002` (Public Cards Catalog & Daily Reading APIs backed by D1 + R2) from [docs/specs/OUT_OF_SCOPE.md](docs/specs/OUT_OF_SCOPE.md).
 
 ### Leftovers & Technical Nuances
-- **Leftover Tasks**: Plan authored; implementation tasks `01`-`05` pending execution.
+- **Leftover Tasks**: Non-blocking hardening items logged in [TODO.md](./TODO.md) (`TODO-006`).
 - **Known Blockers / Warnings**: Ensure `wrangler.toml` shares the exact Cloudflare D1 `database_id` provisioned for `backend-admin` before deploying `--env staging` or `--env prod`.
 
 ---
@@ -70,4 +73,4 @@
 - **Architectures**: [docs/architectures/](docs/architectures/)
 - **Decisions Log**: [docs/decisions/](docs/decisions/)
 - **Researches & Spikes**: [docs/researches/](docs/researches/)
-- **Completed Plan Records**: [docs/plan-records/](docs/plan-records/)
+- **Completed Plan Records**: [docs/plan-records/](docs/plan-records/) (includes [SPEC-001-infra-scaffold](docs/plan-records/SPEC-001-infra-scaffold/00_OVERVIEW.md))

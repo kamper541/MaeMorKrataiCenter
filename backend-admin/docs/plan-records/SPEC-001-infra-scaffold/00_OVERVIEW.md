@@ -15,10 +15,10 @@ Build the `backend-admin` Rust Worker scaffold targeting `wasm32-unknown-unknown
 
 ## 3. Task Manifest
 > **Execution Policy**: Each task below MUST be executed by a dedicated, fresh **Executor / Coder** agent. Before execution, each agent must read this `00_OVERVIEW.md` file first. Strictly 1 agent per 1 task.
-- [ ] `01_RUST_WORKSPACE_AND_WRANGLER.md` — Configure Cargo workspace (`backend-admin` + `tools/create-user`), `.cargo/config.toml`, `wrangler.toml` (`dev`/`staging`/`prod`), `.dev.vars.example`, `package.json`, `src/config.rs`, and `src/error.rs`.
-- [ ] `02_D1_MIGRATIONS_AND_CREATE_USER_CLI.md` — Create canonical `migrations/0001_init_auth.sql`, `tools/create-user` CLI binary (secure tty/stdin password + peppered PBKDF2-100k), and `Makefile`.
-- [ ] `03_CRYPTO_PASSWORD_ENVELOPE_AND_JWT.md` — Implement hybrid `SubtleCrypto`/host PBKDF2-100k password hashing, AES-256-GCM key envelope encryption (`kid|alg` AAD), and `ES256`/`RS256` JWT + JWK primitives.
-- [ ] `04_PORTS_AND_WORKER_ADAPTERS.md` — Define `AppPorts` traits, `WorkerEnvAdapter` (parameterized D1 queries + atomic `batch` rotation, R2 probe, rate limiter), and `InMemoryPorts` test adapter.
-- [ ] `05_MIDDLEWARE_AUTH_AND_ROUTES.md` — Implement request ID, strict CORS, security headers, body size cap, rate limit guard, deny-by-default RBAC extractors, all `SPEC-001` endpoints, and `src/lib.rs` Worker entrypoint.
-- [ ] `06_TESTS_AND_OPENAPI_CONTRACT.md` — Add `tests/spec_001_scenarios.rs` covering `SPEC-001` Scenarios 1 to 6 and author `../docs/api/admin/openapi.yaml`.
-- [ ] `07_DOCUMENTATION.md` — Write permanent feature documentation to `docs/knowledges/features/infra-scaffold-and-auth.md` and update `docs/architectures/`.
+- [x] `01_RUST_WORKSPACE_AND_WRANGLER.md` — Configure Cargo workspace (`backend-admin` + `tools/create-user`), `.cargo/config.toml`, `wrangler.toml` (`dev`/`staging`/`prod`), `.dev.vars.example`, `package.json`, `src/config.rs`, and `src/error.rs`.
+- [x] `02_D1_MIGRATIONS_AND_CREATE_USER_CLI.md` — Create canonical `migrations/0001_init_auth.sql`, `tools/create-user` CLI binary (secure tty/stdin password + peppered PBKDF2-100k), and `Makefile`.
+- [x] `03_CRYPTO_PASSWORD_ENVELOPE_AND_JWT.md` — Implement hybrid `SubtleCrypto`/host PBKDF2-100k password hashing, AES-256-GCM key envelope encryption (`kid|alg` AAD), and `ES256`/`RS256` JWT + JWK primitives.
+- [x] `04_PORTS_AND_WORKER_ADAPTERS.md` — Define `AppPorts` traits, `WorkerEnvAdapter` (parameterized D1 queries + atomic `batch` rotation, R2 probe, rate limiter), and `InMemoryPorts` test adapter.
+- [x] `05_MIDDLEWARE_AUTH_AND_ROUTES.md` — Implement request ID, strict CORS, security headers, body size cap, rate limit guard, deny-by-default RBAC extractors, all `SPEC-001` endpoints, and `src/lib.rs` Worker entrypoint.
+- [x] `06_TESTS_AND_OPENAPI_CONTRACT.md` — Add `tests/spec_001_scenarios.rs` covering `SPEC-001` Scenarios 1 to 6 and author `../docs/api/admin/openapi.yaml`.
+- [x] `07_DOCUMENTATION.md` — Write permanent feature documentation to `docs/knowledges/features/infra-scaffold-and-auth.md` and update `docs/architectures/`.
