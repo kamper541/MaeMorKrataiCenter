@@ -20,6 +20,7 @@
 | `TODO-005` | Content Studio Job Queue (Mac Pull Worker) & Social Center | Medium | PROPOSED | SPEC-001 Scoping | - |
 | `TODO-006` | Cloudflare Access Zero Trust Migration & Key Rotation Automation | Medium | PROPOSED | SPEC-001 Auth Design | - |
 | `TODO-007` | Argon2id Password Hashing Upgrade (Workers Paid Tier) | Low | PROPOSED | SPEC-001 Spectre Audit | - |
+| `TODO-008` | Scheduled D1 Session & Retiring-JWK Cleanup Cron | Low | PROPOSED | SPEC-001 Planning | - |
 
 ---
 
@@ -115,6 +116,19 @@
   - Add Argon2id verifier/hasher behind versioned hash prefix dispatch.
 - **Graduation / Promotion Criteria**:
   - Only needed if Paid Workers plan is active while email+password auth is still primary.
+
+### [TODO-008] Scheduled D1 Session & Retiring-JWK Cleanup Cron
+- **Status**: `PROPOSED`
+- **Discovered On**: 2026-11-16
+- **Discovered By / During**: SPEC-001 Planning
+- **Priority**: `P3 (Low)`
+- **Why Not Now?**: `SPEC-001` focuses on core auth, rotation, and replay revocation; expired rows remain inert via `expires_at` checks.
+- **Context & Problem Statement**:
+  Expired rows in `sessions` and old `retiring` keys in `jwks_keys` accumulate in D1 over time.
+- **Proto-Spec Sketch (Suggested Approach)**:
+  - Add a Cloudflare Worker `[triggers]` `crons` handler (`#[event(scheduled)]`) deleting expired `sessions` beyond retention window and transitioning expired `retiring` keys to `revoked`.
+- **Graduation / Promotion Criteria**:
+  - When production auth traffic grows or before `TODO-006` cutover.
 
 ---
 
