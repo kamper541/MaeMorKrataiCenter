@@ -8,6 +8,15 @@ The Worker name is `mmk-frontend-client`. The configuration is in `../wrangler.j
 the idle and shuffle videos. Other assets are served directly by Static Assets.
 Video requests invoke Worker code and count toward the account's Workers quota.
 
+## Deployment status (2026-11-16)
+
+The first CLI deployment succeeded at
+<https://mmk-frontend-client.maemorkratai.workers.dev>, version
+`cfd8a11d-74ae-4e1f-9219-ec638f46cca9`. GitHub is now connected to the Worker
+with production branch `main`. Automatic deployment is awaiting its first
+verified build. Set the dashboard build root to `frontend-client`; `/` has no
+`package.json` and cannot run `npm run build` for this monorepo.
+
 ## 1. Create an account
 
 1. Open <https://dash.cloudflare.com/sign-up>.

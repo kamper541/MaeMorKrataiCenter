@@ -55,7 +55,11 @@ returns full-file responses to range requests. The Worker runs first only for
 `npm run test:cloudflare` to check range handling.
 
 First-time instructions: `frontend-client/docs/cloudflare-deployment.md`.
-Cloudflare account login and the first remote deployment remain to be completed.
+The first CLI deployment succeeded on 2026-11-16 at
+`https://mmk-frontend-client.maemorkratai.workers.dev` (version
+`cfd8a11d-74ae-4e1f-9219-ec638f46cca9`). GitHub is connected for production
+builds from `main`. The first Git-triggered build still needs verification;
+the build root must be `frontend-client`, not `/`.
 
 Plan:
 1. Review `frontend-client/wrangler.jsonc`; use the checked-in configuration, including the video Worker.
