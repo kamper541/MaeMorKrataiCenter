@@ -9,6 +9,7 @@ The shared space between frontend and backend. Read `context/` first, then agree
 | `api/client/` | API contract for the customer website. Use OpenAPI (`openapi.yaml`). |
 | `api/admin/` | API contract for the admin dashboard and content automation. |
 | `decisions/` | Decision records, named `NNNN-short-title.md` (for example `0001-auth.md`). |
+| [`handover-frontend-decoupling.md`](handover-frontend-decoupling.md) | Audit of `frontend-client/` data/features to move to backend & handover bridge to Spec 01 (Rust + Cloudflare Workers/D1/R2 scaffold). |
 
 Start with [`context/01-overview.md`](context/01-overview.md).
 
