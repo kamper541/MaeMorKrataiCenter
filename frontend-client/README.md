@@ -17,6 +17,21 @@ npm run typecheck
 npm run build      # static export to out/
 ```
 
+## Deploy
+
+See [Cloudflare deployment](docs/cloudflare-deployment.md) for first-time account
+setup, local preview, deployment and GitHub integration.
+
+```sh
+npm run test:cloudflare
+npm run preview:cloudflare   # build and preview on http://127.0.0.1:8787/
+npm run deploy:cloudflare    # build and deploy after wrangler login
+```
+
+Cloudflare serves the static export directly. A small Worker in `cloudflare/`
+handles video byte ranges for Safari. The current Vercel site remains the fallback
+until the Cloudflare deployment has been verified.
+
 ## Structure
 
 | Path | Contents |

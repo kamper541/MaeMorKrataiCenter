@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3010",
     "build": "next build --webpack",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:cloudflare": "node --test cloudflare/worker.test.mjs",
+    "preview:cloudflare": "npm run build && wrangler dev --ip 127.0.0.1 --port 8787",
+    "deploy:cloudflare": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "next": "16.4.2",
@@ -18,7 +21,8 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/three": "0.186.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "wrangler": "^4.162.0"
   },
   "engines": {
     "node": ">=20.9.0"
