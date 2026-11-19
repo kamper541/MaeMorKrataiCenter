@@ -58,6 +58,7 @@ The 4th card does not only add weight. It says what the future leads to. Compare
 | Within ±1 | `confirm` | Keep the outcome |
 | Same side of 5, at least 2 points lower | `cap` | The future happens, but only up to a lower level |
 | Opposite side of 5 | `turn_after` | The future happens, then turns (e.g. break up, then a chance to reconcile if a condition is met) |
+| Reader reads the 4th card as "what to do" | `advise` (v0.2) | Keep the level; add one concrete action (seen in reconcile and "will they come back" cases: e.g. Ace of Swords = say it directly) |
 
 `turn_after` is the case a pure average gets wrong, so it is decided before the total is used.
 
@@ -89,6 +90,8 @@ Each intent has an `answer_mode`:
 |---|---|---|
 | `verdict` | commitment, breakup, reconcile, feelings, "will they come back" | Rules 2–3: weighted total → ladder level, expansion role, verdict line |
 | `advice` | direction, clarify ("how should I …") | Each card's `advice` text in the category; the 4th card adds one concrete action to the position it expands (usually the future card); the answer ends with that action instead of a verdict line |
+
+The mode follows the **form of the question** (yes/no vs how/what), not the old workshop intent label: e.g. "Will he come back?" is labelled `clarify` in the workshop but is a `verdict` question.
 
 Scores still set the tone in `advice` mode (gentle vs firm), but no ladder level is shown. `choice` stays open (see below).
 

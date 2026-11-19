@@ -122,7 +122,7 @@ CREATE TABLE answer_ladders (
 -- Rule 3: thresholds for expansion roles
 CREATE TABLE expansion_role_rules (
   release_id TEXT NOT NULL REFERENCES knowledge_releases (id),
-  role TEXT NOT NULL CHECK (role IN ('amplify', 'confirm', 'cap', 'turn_after')),
+  role TEXT NOT NULL CHECK (role IN ('amplify', 'confirm', 'cap', 'turn_after', 'advise')),
   min_delta INTEGER,                       -- expansion score minus future score
   max_delta INTEGER,
   crosses_neutral INTEGER NOT NULL CHECK (crosses_neutral IN (0, 1)),
