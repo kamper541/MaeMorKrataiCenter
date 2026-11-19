@@ -56,9 +56,13 @@ The 4th card does not only add weight. It says what the future leads to. Compare
 |---|---|---|
 | Same side of 5, at least 2 points higher | `amplify` | Raise the outcome one ladder level |
 | Within ±1 | `confirm` | Keep the outcome |
-| Same side of 5, at least 2 points lower | `cap` | The future happens, but only up to a lower level |
-| Opposite side of 5 | `turn_after` | The future happens, then turns (e.g. break up, then a chance to reconcile if a condition is met) |
+| Same side of 5, at least 2 points lower | `cap` | Keep the level from the total (the low 4th card is already weighted in); phrase the future as "only up to this level" |
+| Opposite side of 5 | `turn_after` | Level from the first three cards only (equal weights); answer that outcome first, then the turn from the 4th card with its condition (e.g. break up, then a chance to reconcile if the recurring fights are resolved) |
 | Reader reads the 4th card as "what to do" | `advise` (v0.2) | Keep the level; add one concrete action (seen in reconcile and "will they come back" cases: e.g. Ace of Swords = say it directly) |
+
+Order of checks: `turn_after` (crosses 5) first, then `amplify` / `cap` / `confirm` by delta. `advise` is set by the card data (the 4th card has an `advice` text for this category and intent) and can combine with `confirm`.
+
+Ladder shift: `amplify` +1 level (max top level). All other roles: no shift. `turn_after` replaces the 4-card total with the 3-card mean.
 
 `turn_after` is the case a pure average gets wrong, so it is decided before the total is used.
 
@@ -120,7 +124,7 @@ Question: *Is this relationship likely to end?* · `love / breakup` (high score 
 | Future | Eight of Cups | 2 |
 | Expansion | Temperance | 7 |
 
-- **Case 03:** Temperance (7) vs Eight of Cups (2) are on opposite sides of 5 → `turn_after`. Answer: likely breaks up, then a chance to get back together if the recurring fights are resolved. ✅ Matches the reader. (The average alone, 4.0, would only say "likely to end".)
+- **Case 03:** Temperance (7) vs Eight of Cups (2) are on opposite sides of 5 → `turn_after`. Answer: likely breaks up, then a chance to get back together if the recurring fights are resolved. ✅ Matches the reader. Level from the first three cards: (2 + 3 + 2) / 3 = 2.3 → likely ends; then the turn. (The 4-card average alone, 4.0, would only say "likely to end" with no turn.)
 
 ## Open questions
 

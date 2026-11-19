@@ -126,7 +126,7 @@ CREATE TABLE expansion_role_rules (
   min_delta INTEGER,                       -- expansion score minus future score
   max_delta INTEGER,
   crosses_neutral INTEGER NOT NULL CHECK (crosses_neutral IN (0, 1)),
-  ladder_shift INTEGER NOT NULL DEFAULT 0, -- +1 amplify, -1 cap, 0 otherwise
+  ladder_shift INTEGER NOT NULL DEFAULT 0, -- +1 amplify, 0 otherwise (cap only changes wording)
   template_th TEXT NOT NULL,               -- phrasing for step 4 of the answer
   PRIMARY KEY (release_id, role)
 );
@@ -207,9 +207,9 @@ CREATE TABLE eval_results (
 ```
 load release → for each drawn card: score = override(card, category, intent) ?? card_scores(card, category)
   any score missing           → needs_owner
-  role  = expansion_role_rules(expansion.score - future.score, crosses 5?)
-  total = Σ score × weight(position, intent)
-  level = answer_ladders(category, intent, polarity-adjusted total) + role.ladder_shift
+  role  = expansion_role_rules(expansion.score - future.score, crosses 5?)   -- turn_after checked first
+  total = role == turn_after ? mean(past, present, future) : Σ score × weight(position, intent)
+  level = min(top, answer_ladders(category, intent, polarity-adjusted total) + role.ladder_shift)
   text  = fill answer_templates(step, category, intent) with card rows, role template, ladder answer
   store reading_outputs with trace_json
 ```
