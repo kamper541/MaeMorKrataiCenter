@@ -23,7 +23,8 @@ CREATE TABLE categories (
 CREATE TABLE intents (
   key TEXT PRIMARY KEY,                -- commitment | breakup | reconcile | feelings | direction | choice | clarify
   label_th TEXT NOT NULL,
-  polarity TEXT NOT NULL CHECK (polarity IN ('high_is_yes', 'high_is_no', 'none'))
+  polarity TEXT NOT NULL CHECK (polarity IN ('high_is_yes', 'high_is_no', 'none')),
+  answer_mode TEXT NOT NULL CHECK (answer_mode IN ('verdict', 'advice'))   -- v0.2, Rule 6
 );
 
 CREATE TABLE situations (
@@ -73,6 +74,7 @@ CREATE TABLE card_scores (
   meaning_th TEXT NOT NULL,
   condition_th TEXT,
   person_trait_th TEXT,
+  advice_th TEXT,                      -- v0.2: what the card tells the person to do (advice mode)
   status TEXT NOT NULL CHECK (status IN ('draft', 'reader_confirmed')),
   source_ref TEXT,                     -- e.g. workshop case id, never the answer text
   updated_by TEXT REFERENCES users (id),
@@ -132,10 +134,11 @@ CREATE TABLE expansion_role_rules (
 -- Rule 4: answer templates per step
 CREATE TABLE answer_templates (
   release_id TEXT NOT NULL REFERENCES knowledge_releases (id),
-  step TEXT NOT NULL CHECK (step IN ('past', 'present', 'future', 'expansion', 'verdict')),
+  step TEXT NOT NULL CHECK (step IN ('past', 'present', 'future', 'expansion', 'verdict', 'advice')),
   category_key TEXT NOT NULL DEFAULT '*',
   intent_key TEXT NOT NULL DEFAULT '*',
-  body_th TEXT NOT NULL,                   -- placeholders: {card} {keyword} {meaning} {condition} {trait} {answer}
+  expands_position TEXT,                   -- v0.2 advice mode: which position the 4th card expands (default 'future')
+  body_th TEXT NOT NULL,                   -- placeholders: {card} {keyword} {meaning} {condition} {trait} {advice} {answer}
   PRIMARY KEY (release_id, step, category_key, intent_key)
 );
 ```

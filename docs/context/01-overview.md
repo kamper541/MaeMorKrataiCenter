@@ -37,6 +37,7 @@ The content automation program (video generation pipeline) runs only on the fron
 7. [08 · Open decisions](08-open-decisions.md)
 8. [Glossary](glossary.md): Thai terms, card IDs, relationship statuses
 9. [09 · Reading rules v0](09-reading-rules-v0.md) and [10 · Reading master data](10-reading-master-data.md): how the 3+1 answer is computed
+10. [11 · Phase 2 plan](11-phase-2-plan.md): work items for the reading engine
 
 ## Questions the backend should help answer
 

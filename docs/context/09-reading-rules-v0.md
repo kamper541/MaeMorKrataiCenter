@@ -1,6 +1,6 @@
 # 09 · Reading rules v0 (3+1 card spread)
 
-Status: **draft for review** (2026-11-19). Derived from the reader's development cases 01–03 (audio answers, re-transcribed locally with Whisper large-v3). Real answers stay out of Git; this document holds only the derived rules and scores.
+Status: **draft for review** (2026-11-19, v0.2 adds answer modes). Derived from the reader's development cases 01–03 (audio answers, re-transcribed locally with Whisper large-v3). Real answers stay out of Git; this document holds only the derived rules and scores.
 
 Applies to Engine A in [05 · Reading engine](05-reading-engine.md). Data model: [10 · Reading master data](10-reading-master-data.md).
 
@@ -80,6 +80,17 @@ Engine A fills a template with these parts. Engine B (later) may rewrite the sam
 - No timing claims (e.g. "about 6 months") unless a reader-approved timing rule exists.
 - Health questions are never a diagnosis.
 - Every answer records `knowledge_version`, the scores used, the role, the total and the ladder level (trace).
+
+## Rule 6 · Two answer modes (v0.2)
+
+Each intent has an `answer_mode`:
+
+| Mode | Intents | How the answer is built |
+|---|---|---|
+| `verdict` | commitment, breakup, reconcile, feelings, "will they come back" | Rules 2–3: weighted total → ladder level, expansion role, verdict line |
+| `advice` | direction, clarify ("how should I …") | Each card's `advice` text in the category; the 4th card adds one concrete action to the position it expands (usually the future card); the answer ends with that action instead of a verdict line |
+
+Scores still set the tone in `advice` mode (gentle vs firm), but no ladder level is shown. `choice` stays open (see below).
 
 ## Worked examples
 
