@@ -4,7 +4,7 @@ The shared space between frontend and backend. Read `context/` first, then agree
 
 | Path | Contents |
 |---|---|
-| [`context/`](context) | Project knowledge, translated from the old repo: overview, current state, architecture, data and payments, reading engine, admin/Content Studio, roadmap, open decisions, glossary |
+| [`context/`](context) | Project knowledge, translated from the old repo: overview, current state, architecture, data and payments, reading engine, admin/Content Studio, roadmap, open decisions, glossary, **reading rules v0 (09)** and **reading master data proposal (10)** |
 | [`reference/`](reference) | Raw reference material: legacy workshop SQL migrations, the never-migrated schema proposal (DBML), Social Center summary |
 | `api/client/` | API contract for the customer website. Use OpenAPI (`openapi.yaml`). |
 | `api/admin/` | API contract for the admin dashboard and content automation. |
