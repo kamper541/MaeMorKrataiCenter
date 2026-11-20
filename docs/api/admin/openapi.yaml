@@ -1,11 +1,33 @@
 openapi: 3.1.0
 info:
   title: MaeMorKratai Admin Backend API
-  version: 0.1.0
-  description: >
+  version: 0.2.0
+  description: |
     Infrastructure, health, JWKS, and Day-1 authentication contract for backend-admin
     (SPEC-001). All endpoints enforce deny-by-default authorization except explicitly
     documented public auth and health routes.
+
+    SPEC-002 adds master-data management (`tag: master-data`):
+    - Every master-data endpoint requires a bearer token with role `admin` or higher
+      and an active account.
+    - Every response is `Cache-Control: no-store`. GETs here are uncached and return
+      the same shapes the writes accept, so a record can be read, edited and PUT back.
+      The public client API may lag up to 10 minutes (D05).
+    - PUT replaces the whole record; keys are immutable (body key must equal the path
+      key); concurrent writes are last-write-wins (D06).
+    - References are checked atomically with the write: a missing card, category or
+      love-status key is 400 `INVALID_REFERENCE`; deleting a record that is still
+      referenced is 409 (delete dependents first, no cascade) (D09). Exception:
+      deleting a category moves its situations and suggestions to uncategorized
+      (category null) instead (D10).
+    - Every create/update/delete writes an `audit_events` row
+      (`master_data.<entity>.<action>`, record key, changed field names; no text values).
+    - Any daily entry, daily metadata or love-status write sets daily `updated` to today
+      (Asia/Bangkok) and the trailing date of `version` (appended if missing).
+    - Validation: unknown JSON fields are rejected with 400; text is plain text (no
+      control characters except newline); short text 1-200 characters, long text
+      (`details`, daily content) 1-2,000; body at most 64 KiB (413).
+    - Shared schemas are referenced from `../client/openapi.yaml`.
 servers:
   - url: http://127.0.0.1:8787
     description: Local Wrangler dev
@@ -198,7 +220,864 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/admin/cards:
+    get:
+      summary: List cards (uncached)
+      operationId: adminListCards
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardWriteList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    post:
+      summary: Create a card
+      operationId: createCard
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardWrite"
+      responses:
+        "201":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/cards/{card_id}:
+    parameters:
+      - name: card_id
+        in: path
+        required: true
+        schema:
+          $ref: "../client/openapi.yaml#/components/schemas/CardId"
+    put:
+      summary: Replace a card (last write wins, D06). 409 while an art entry exists and `art` changes.
+      operationId: updateCard
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardWrite"
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    delete:
+      summary: Delete a card. 409 while a daily entry or art entry still references it.
+      operationId: deleteCard
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: "Deleted (`Cache-Control: no-store`)"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/daily-cards:
+    get:
+      summary: Get daily document in write shapes (uncached)
+      operationId: adminGetDailyCards
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDailyDocument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    post:
+      summary: Create a daily card entry; card_id must be an existing card. Auto-sets daily `updated`/`version`.
+      operationId: createDailyCard
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DailyCardWrite"
+      responses:
+        "201":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyCardWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/daily-metadata:
+    put:
+      summary: Replace editable daily metadata. Auto-sets `updated`/`version`.
+      operationId: updateDailyMetadata
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DailyMetadataWrite"
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyMetadata"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/daily-cards/{card_id}:
+    parameters:
+      - name: card_id
+        in: path
+        required: true
+        schema:
+          $ref: "../client/openapi.yaml#/components/schemas/CardId"
+    put:
+      summary: Replace a daily card entry (last write wins). Auto-sets daily `updated`/`version`.
+      operationId: updateDailyCard
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DailyCardWrite"
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyCardWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    delete:
+      summary: Delete a daily card entry. Auto-sets daily `updated`/`version`.
+      operationId: deleteDailyCard
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: "Deleted (`Cache-Control: no-store`)"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/card-art:
+    get:
+      summary: Get card art manifest (uncached)
+      operationId: adminGetCardArt
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "../client/openapi.yaml#/components/schemas/CardArtManifest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    post:
+      summary: Create a card art entry
+      operationId: createCardArt
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../client/openapi.yaml#/components/schemas/CardArt"
+      responses:
+        "201":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "../client/openapi.yaml#/components/schemas/CardArt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/card-art/{card_id}:
+    parameters:
+      - name: card_id
+        in: path
+        required: true
+        schema:
+          $ref: "../client/openapi.yaml#/components/schemas/CardId"
+    put:
+      summary: Replace a card art entry (last write wins, D06)
+      operationId: updateCardArt
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../client/openapi.yaml#/components/schemas/CardArt"
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "../client/openapi.yaml#/components/schemas/CardArt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    delete:
+      summary: Delete a card art entry
+      operationId: deleteCardArt
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: "Deleted (`Cache-Control: no-store`)"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/reading-config:
+    get:
+      summary: Get reading config in write shapes (uncached)
+      operationId: adminGetReadingConfig
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminReadingConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/categories:
+    post:
+      summary: Create a category
+      operationId: createCategory
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryWrite"
+      responses:
+        "201":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/categories/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          $ref: "../client/openapi.yaml#/components/schemas/Key"
+    put:
+      summary: Replace a category (last write wins, D06)
+      operationId: updateCategory
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryWrite"
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    delete:
+      summary: Delete a category; its situations and suggestions become uncategorized (category null, D10).
+      operationId: deleteCategory
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: "Deleted (`Cache-Control: no-store`)"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/situations:
+    post:
+      summary: Create a situation
+      operationId: createSituation
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SituationWrite"
+      responses:
+        "201":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SituationWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/situations/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          $ref: "../client/openapi.yaml#/components/schemas/Key"
+    put:
+      summary: Replace a situation (last write wins, D06)
+      operationId: updateSituation
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SituationWrite"
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SituationWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    delete:
+      summary: Delete a situation
+      operationId: deleteSituation
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: "Deleted (`Cache-Control: no-store`)"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/suggestions:
+    post:
+      summary: Create a suggested question
+      operationId: createSuggestion
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuggestionWrite"
+      responses:
+        "201":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestionRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/suggestions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/SuggestionId"
+    put:
+      summary: Replace a suggested question (last write wins, D06)
+      operationId: updateSuggestion
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuggestionWrite"
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestionRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    delete:
+      summary: Delete a suggested question
+      operationId: deleteSuggestion
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: "Deleted (`Cache-Control: no-store`)"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/positions:
+    post:
+      summary: Create a spread position
+      operationId: createPosition
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PositionWrite"
+      responses:
+        "201":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PositionWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/positions/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          $ref: "../client/openapi.yaml#/components/schemas/Key"
+    put:
+      summary: Replace a spread position (last write wins, D06)
+      operationId: updatePosition
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PositionWrite"
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PositionWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    delete:
+      summary: Delete a spread position
+      operationId: deletePosition
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: "Deleted (`Cache-Control: no-store`)"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/love-statuses:
+    post:
+      summary: Create a love status (bumps daily version)
+      operationId: createLoveStatus
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoveStatusWrite"
+      responses:
+        "201":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoveStatusWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/admin/love-statuses/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          $ref: "../client/openapi.yaml#/components/schemas/Key"
+    put:
+      summary: Replace a love status (bumps daily version) (last write wins, D06)
+      operationId: updateLoveStatus
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoveStatusWrite"
+      responses:
+        "200":
+          description: "OK (`Cache-Control: no-store`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoveStatusWrite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    delete:
+      summary: Delete a love status (bumps daily version). 409 while any stored card meaning/detail or daily love text uses its key. Bumps daily version.
+      operationId: deleteLoveStatus
+      tags: [master-data]
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: "Deleted (`Cache-Control: no-store`)"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/Unavailable"
 components:
+  responses:
+    BadRequest:
+      description: >
+        Validation failed; nothing changed. Codes: `VALIDATION_FAILED` (unknown field,
+        wrong type, missing field, length, pattern, integer bounds, control characters,
+        PUT body key differs from path key, situation with category `love`, art entry
+        `art` differs from its card) or `INVALID_REFERENCE` (card, category or
+        love-status key does not exist).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    PayloadTooLarge:
+      description: Body exceeds MAX_BODY_BYTES (65,536); code `PAYLOAD_TOO_LARGE`; nothing changed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Forbidden:
+      description: Role below `admin` or inactive account
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    NotFound:
+      description: Record does not exist
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Conflict:
+      description: Key already exists (create), or record is still referenced (delete); nothing changed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Unavailable:
+      description: D1 unavailable or a statement in the write batch failed; nothing persisted (no change, no audit row, no daily version bump)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
   securitySchemes:
     BearerAuth:
       type: http
@@ -307,3 +1186,191 @@ components:
           type: string
         message:
           type: string
+    SortOrder:
+      type: integer
+      minimum: 0
+      maximum: 10000
+      description: Position in public lists (ascending)
+    SuggestionId:
+      type: string
+      maxLength: 64
+      description: Seeded suggestions use `<category>-<n>` (e.g. `love-1`); admin-created ones get a server-generated UUIDv4.
+    CardWrite:
+      description: >
+        Public ReadingCard plus `sort_order`. On PUT, `id` must equal the path
+        `card_id` (keys are immutable). Keys of `meanings` / `details` must be
+        existing love-status keys; an omitted key or `null` means no text.
+      allOf:
+        - $ref: "../client/openapi.yaml#/components/schemas/ReadingCard"
+        - type: object
+          required: [sort_order]
+          properties:
+            sort_order:
+              $ref: "#/components/schemas/SortOrder"
+      unevaluatedProperties: false
+    CardWriteList:
+      type: array
+      items:
+        $ref: "#/components/schemas/CardWrite"
+    DailyCardWrite:
+      description: >
+        Public DailyCard plus `sort_order` (daily order differs from card order).
+        `card_id` must be an existing card; on PUT it must equal the path.
+        `missing_fields` is computed by the server; it is optional and ignored on write.
+      allOf:
+        - $ref: "../client/openapi.yaml#/components/schemas/DailyCard"
+        - type: object
+          required: [sort_order]
+          properties:
+            sort_order:
+              $ref: "#/components/schemas/SortOrder"
+      unevaluatedProperties: false
+    DailyMetadataWrite:
+      type: object
+      description: Editable daily metadata. `version` and `updated` are set by the server.
+      required: [schema_version, status, scope, auto_fallback_to_general_or_spread]
+      additionalProperties: false
+      properties:
+        schema_version:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          minLength: 1
+          maxLength: 200
+        scope:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        auto_fallback_to_general_or_spread:
+          type: boolean
+    DailyMetadata:
+      allOf:
+        - $ref: "#/components/schemas/DailyMetadataWrite"
+        - type: object
+          required: [version, updated]
+          properties:
+            version:
+              type: string
+              example: daily-v1-draft-2026-11-21
+            updated:
+              type: string
+              format: date
+    AdminDailyDocument:
+      description: Daily metadata plus entries in write shape, ordered by `sort_order`.
+      allOf:
+        - $ref: "#/components/schemas/DailyMetadata"
+        - type: object
+          required: [cards]
+          properties:
+            cards:
+              type: array
+              items:
+                $ref: "#/components/schemas/DailyCardWrite"
+    CategoryWrite:
+      description: On PUT, `key` must equal the path key (immutable).
+      allOf:
+        - $ref: "../client/openapi.yaml#/components/schemas/Category"
+        - type: object
+          required: [sort_order]
+          properties:
+            sort_order:
+              $ref: "#/components/schemas/SortOrder"
+      unevaluatedProperties: false
+    SituationWrite:
+      type: object
+      description: >
+        Situations for categories other than `love`. Love situations are the love
+        statuses (manage them via `/v1/admin/love-statuses`); `category: love` is
+        rejected with 400. `category` null means uncategorized (D10). On PUT, `key`
+        must equal the path key; `category` may change to another existing category or null.
+      required: [key, category, label, sort_order]
+      additionalProperties: false
+      properties:
+        key:
+          $ref: "../client/openapi.yaml#/components/schemas/Key"
+        category:
+          oneOf:
+            - $ref: "../client/openapi.yaml#/components/schemas/Key"
+            - type: "null"
+        label:
+          type: string
+          minLength: 1
+          maxLength: 200
+        sort_order:
+          $ref: "#/components/schemas/SortOrder"
+    SuggestionWrite:
+      type: object
+      required: [category, text, sort_order]
+      additionalProperties: false
+      properties:
+        category:
+          description: Category key, or null for uncategorized (D10)
+          oneOf:
+            - $ref: "../client/openapi.yaml#/components/schemas/Key"
+            - type: "null"
+        text:
+          type: string
+          minLength: 1
+          maxLength: 200
+        sort_order:
+          $ref: "#/components/schemas/SortOrder"
+    SuggestionRecord:
+      allOf:
+        - $ref: "#/components/schemas/SuggestionWrite"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              $ref: "#/components/schemas/SuggestionId"
+    PositionWrite:
+      description: On PUT, `key` must equal the path key (immutable).
+      allOf:
+        - $ref: "../client/openapi.yaml#/components/schemas/LabeledKey"
+        - type: object
+          required: [sort_order]
+          properties:
+            sort_order:
+              $ref: "#/components/schemas/SortOrder"
+      unevaluatedProperties: false
+    LoveStatusWrite:
+      description: >
+        Two orders because the daily and 3-card screens list statuses differently.
+        On PUT, `key` must equal the path key (immutable). Any create, update or
+        delete bumps the daily `updated` / `version`.
+      allOf:
+        - $ref: "../client/openapi.yaml#/components/schemas/LoveStatus"
+        - type: object
+          required: [daily_sort_order, reading_sort_order]
+          properties:
+            daily_sort_order:
+              $ref: "#/components/schemas/SortOrder"
+            reading_sort_order:
+              $ref: "#/components/schemas/SortOrder"
+      unevaluatedProperties: false
+    AdminReadingConfig:
+      type: object
+      description: Reading config in write shapes, so each record can be read, edited and PUT back.
+      required: [categories, situations, suggestions, positions, love_statuses]
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryWrite"
+        situations:
+          type: array
+          description: Non-love situations only
+          items:
+            $ref: "#/components/schemas/SituationWrite"
+        suggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SuggestionRecord"
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PositionWrite"
+        love_statuses:
+          type: array
+          items:
+            $ref: "#/components/schemas/LoveStatusWrite"

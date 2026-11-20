@@ -13,6 +13,7 @@ It serves as seed context for future Spectre spec sessions or for graduating int
   - **Reason for Deferral**: Deliberately split from `SPEC-001` so the foundational Rust Worker + D1 + R2 + Security baseline is verified cleanly first.
   - **Captured Context**: Public read endpoints (`GET /v1/cards`, `GET /v1/daily/...`) backed by shared D1 + `PUBLIC_ASSETS` R2 CDN, Turnstile-protected draw routes, canonical relationship-status enum keys, and removal of internal `source_*` leaks.
   - **Recommended Action**: Graduate immediately as **`SPEC-002`** after `SPEC-001` completes.
+  - **Status (2026-11-21)**: `GRADUATED` into [docs/specs/SPEC-002-master-data-to-backend.md](../../specs/SPEC-002-master-data-to-backend.md) (data only; R2 card art and server-side daily draw stay deferred).
 
 - **Item**: AI LLM Chat, RAG Database & Agentic Tool Calling
   - **Reason for Deferral**: Non-core to infrastructure scaffold; requires separate RAG/vector store, prompt guardrails, and spend caps design.

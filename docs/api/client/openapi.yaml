@@ -1,11 +1,45 @@
 openapi: 3.1.0
 info:
   title: MaeMorKratai Client Backend API
-  version: 0.1.0
-  description: >
-    Infrastructure and public health contract for backend-client (SPEC-001).
-    Binds exclusively to shared D1 (read-only published posture in Phase 1)
-    and PUBLIC_ASSETS R2 bucket.
+  version: 0.2.0
+  description: |
+    Public, read-only contract for backend-client.
+
+    - SPEC-001: `/health`.
+    - SPEC-002: master data that used to be bundled in `frontend-client`
+      (`reading-cards.json`, `daily-cards.json`, `public/cards/v3/manifest.json`,
+      and the constants in `src/lib/reading.ts`).
+
+    **Read only.** Every endpoint here is `GET`. Customers are anonymous; there
+    is no auth. Writes happen only through the admin API (`docs/api/admin/`).
+
+    **Caching (D05).** Successful master-data responses carry
+    `Cache-Control: public, max-age=600`. An admin edit can take **up to 10 minutes**
+    to appear for a browser that already cached the response. There is no
+    invalidation yet. Error responses are always `Cache-Control: no-store`.
+
+    **Keys vs labels (D08).** Identifiers are English keys (`single`, `ex_partner`,
+    `love`, `current_job`, `past`, ...). Thai text is returned as labels.
+    `reading-cards` `meanings` / `details` are keyed by love-status key, not by Thai
+    label as in the old JSON. Map keys to labels with `GET /v1/reading-config`
+    (`love_statuses[].reading_label` for the 3-card screen, `daily_label` for the
+    daily screen).
+
+    **Images** stay in `frontend-client/public/`. `art` fields are the same
+    root-relative paths as today (e.g. `/cards/v3/the-fool-e11e1ee168a4.webp`) and
+    are `null` for cards without art.
+
+    **No pagination.** Lists are returned whole (TODO-010).
+
+    **Love-status maps** (`meanings`, `details`, `love_by_status`) always contain every
+    current love-status key; a value is `null` when no text exists. Never fill a
+    `null` with generated text.
+
+    **Plain text.** All text fields are plain text (newlines allowed). Render as text,
+    never as HTML.
+
+    **Errors.** Unknown paths return 404. POST, PUT, PATCH or DELETE on any path
+    returns 405. Both use the error envelope and `Cache-Control: no-store`.
 servers:
   - url: http://127.0.0.1:8788
     description: Local Wrangler dev
@@ -26,18 +60,111 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
         "429":
-          description: Rate limit exceeded
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+          $ref: "#/components/responses/RateLimited"
         "503":
           description: D1 or PUBLIC_ASSETS R2 dependency unavailable
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/cards:
+    get:
+      summary: All tarot cards for the 3-card reading (replaces reading-cards.json)
+      operationId: listCards
+      tags: [master-data]
+      responses:
+        "200":
+          description: All cards, ordered by `sort_order` (same order as the old JSON)
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/PublicCache"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReadingCard"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/daily-cards:
+    get:
+      summary: Daily one-card content and metadata (replaces daily-cards.json)
+      operationId: getDailyCards
+      tags: [master-data]
+      responses:
+        "200":
+          description: Daily document with all daily cards
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/PublicCache"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyCardsDocument"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/card-art:
+    get:
+      summary: Card image sizes (replaces public/cards/v3/manifest.json)
+      operationId: getCardArt
+      tags: [master-data]
+      responses:
+        "200":
+          description: One entry per card that has art (cards without art are absent)
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/PublicCache"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardArtManifest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/reading-config:
+    get:
+      summary: Reading taxonomy (replaces constants in src/lib/reading.ts)
+      operationId: getReadingConfig
+      tags: [master-data]
+      responses:
+        "200":
+          description: Categories, situations, suggested questions, positions and love statuses
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/PublicCache"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingConfig"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/Unavailable"
 components:
+  headers:
+    PublicCache:
+      description: Always `public, max-age=600` on 200 (D05). Edits may take up to 10 minutes to show.
+      schema:
+        type: string
+        example: public, max-age=600
+  responses:
+    RateLimited:
+      description: "Rate limit exceeded (`Cache-Control: no-store`)"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Unavailable:
+      description: "D1 unavailable (`Cache-Control: no-store`)"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
   schemas:
     HealthResponse:
       type: object
@@ -62,3 +189,288 @@ components:
           type: string
         message:
           type: string
+    CardId:
+      type: string
+      pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+      maxLength: 64
+      example: the-fool
+    Key:
+      type: string
+      description: English identifier (D08)
+      pattern: "^[a-z][a-z0-9_]{0,39}$"
+      example: ex_partner
+    TextByLoveStatus:
+      type: object
+      description: Map from every current love-status key (see `ReadingConfig.love_statuses`) to Thai text, or null when no text exists.
+      propertyNames:
+        $ref: "#/components/schemas/Key"
+      additionalProperties:
+        type: [string, "null"]
+      example:
+        single: รักใหม่กำลังมา
+        ex_partner: เริ่มต้นชีวิตใหม่ ไม่ยึดติดอดีต
+    ReadingCard:
+      type: object
+      required: [id, name, keyword, art, meanings, details]
+      properties:
+        id:
+          $ref: "#/components/schemas/CardId"
+        name:
+          type: string
+          example: The Fool
+        keyword:
+          type: string
+          example: การเริ่มต้น
+        art:
+          type: [string, "null"]
+          pattern: "^/cards/v3/[a-z0-9-]+\\.webp$"
+          maxLength: 200
+          description: Root-relative path in frontend-client/public; null when the card has no art
+          example: /cards/v3/the-fool-e11e1ee168a4.webp
+        meanings:
+          $ref: "#/components/schemas/TextByLoveStatus"
+        details:
+          $ref: "#/components/schemas/TextByLoveStatus"
+    NullableTextByLoveStatus:
+      type: object
+      description: Map from love-status key to Thai text; null means the source has no text (never generated).
+      propertyNames:
+        $ref: "#/components/schemas/Key"
+      additionalProperties:
+        type: [string, "null"]
+    DailyCardContent:
+      type: object
+      required: [theme, overview, work, money, love_by_status, rabbit_message, colors, affirmation]
+      properties:
+        theme:
+          type: string
+        overview:
+          type: string
+        work:
+          type: string
+        money:
+          type: string
+        love_by_status:
+          $ref: "#/components/schemas/NullableTextByLoveStatus"
+        rabbit_message:
+          type: string
+        colors:
+          type: string
+          example: สีเหลือง สีขาว
+        affirmation:
+          type: string
+    DailyCard:
+      type: object
+      required: [card_id, name, arcana, reading_mode, time_horizon, orientation, content_status, approved_for_web, missing_fields, variants, content]
+      properties:
+        card_id:
+          $ref: "#/components/schemas/CardId"
+        name:
+          type: string
+        arcana:
+          type: string
+          enum: [major, minor]
+        reading_mode:
+          type: string
+          example: daily_single
+        time_horizon:
+          type: string
+          example: today
+        orientation:
+          type: string
+          example: upright_only
+        content_status:
+          type: string
+          example: assistant_draft_pending_review
+        approved_for_web:
+          type: boolean
+        missing_fields:
+          type: array
+          readOnly: true
+          description: Computed by the server from null daily love texts
+          items:
+            type: string
+          example: [content.love_by_status.complicated]
+        variants:
+          type: object
+          required: [summary_theme, overview_theme]
+          properties:
+            summary_theme:
+              type: [string, "null"]
+            overview_theme:
+              type: [string, "null"]
+        content:
+          $ref: "#/components/schemas/DailyCardContent"
+    DailyLoveStatus:
+      type: object
+      required: [key, source_label]
+      properties:
+        key:
+          $ref: "#/components/schemas/Key"
+        source_label:
+          type: string
+          description: Daily-screen label (same value as `ReadingConfig.love_statuses[].daily_label`)
+          example: คนรักเก่า
+    DailyCardsDocument:
+      type: object
+      description: Same structure as the old daily-cards.json, without the per-card `source` object.
+      required: [schema_version, version, updated, status, scope, auto_fallback_to_general_or_spread, love_statuses, cards]
+      properties:
+        schema_version:
+          type: integer
+          example: 1
+        version:
+          type: string
+          description: Trailing date is set automatically on every admin edit of daily data (Asia/Bangkok).
+          example: daily-v1-draft-2026-11-21
+        updated:
+          type: string
+          format: date
+          description: Set automatically on every admin edit of daily data (Asia/Bangkok).
+          example: "2026-11-21"
+        status:
+          type: string
+          example: draft_pending_owner_review
+        scope:
+          type: string
+        auto_fallback_to_general_or_spread:
+          type: boolean
+        love_statuses:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyLoveStatus"
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyCard"
+    CardArt:
+      type: object
+      required: [id, art, width, height, renderedWidth, renderedHeight, sha256, bytes]
+      properties:
+        id:
+          $ref: "#/components/schemas/CardId"
+        art:
+          type: string
+          pattern: "^/cards/v3/[a-z0-9-]+\\.webp$"
+          maxLength: 200
+          description: Always equal to the card's `art`
+          example: /cards/v3/the-fool-e11e1ee168a4.webp
+        width:
+          type: integer
+          minimum: 1
+          example: 637
+        height:
+          type: integer
+          minimum: 1
+          example: 1024
+        renderedWidth:
+          type: integer
+          minimum: 1
+          example: 600
+        renderedHeight:
+          type: integer
+          minimum: 1
+          example: 965
+        sha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        bytes:
+          type: integer
+          minimum: 1
+    CardArtManifest:
+      type: object
+      required: [cards]
+      properties:
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/CardArt"
+    Category:
+      type: object
+      required: [key, label, icon, hint]
+      properties:
+        key:
+          $ref: "#/components/schemas/Key"
+        label:
+          type: string
+          example: ความรัก
+        icon:
+          type: string
+          example: ♡
+        hint:
+          type: string
+          example: ความรู้สึกและความสัมพันธ์
+    LabeledKey:
+      type: object
+      required: [key, label]
+      properties:
+        key:
+          $ref: "#/components/schemas/Key"
+        label:
+          type: string
+    Suggestion:
+      type: object
+      required: [id, text]
+      properties:
+        id:
+          type: string
+          description: Generated identifier
+        text:
+          type: string
+    LoveStatus:
+      type: object
+      required: [key, daily_label, reading_label]
+      properties:
+        key:
+          $ref: "#/components/schemas/Key"
+        daily_label:
+          type: string
+          example: คนรักเก่า
+        reading_label:
+          type: string
+          example: เลิกกัน
+    ReadingConfig:
+      type: object
+      required: [categories, situations, suggestions, positions, love_statuses, uncategorized_situations, uncategorized_suggestions]
+      properties:
+        categories:
+          type: array
+          description: Ordered as shown in the UI
+          items:
+            $ref: "#/components/schemas/Category"
+        situations:
+          type: object
+          description: >
+            Category key to ordered situations. `situations.love` is derived from
+            `love_statuses` (key + `reading_label`).
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/LabeledKey"
+        suggestions:
+          type: object
+          description: Category key to ordered suggested questions
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/Suggestion"
+        positions:
+          type: array
+          description: Ordered spread positions (past, present, future)
+          items:
+            $ref: "#/components/schemas/LabeledKey"
+        uncategorized_situations:
+          type: array
+          description: Situations whose category was deleted (D10). Includes the love-status situations while no `love` category exists. Ordered by sort order, then key. Usually empty.
+          items:
+            $ref: "#/components/schemas/LabeledKey"
+        uncategorized_suggestions:
+          type: array
+          description: Suggested questions whose category was deleted (D10). Ordered by sort order, then id. Usually empty.
+          items:
+            $ref: "#/components/schemas/Suggestion"
+        love_statuses:
+          type: array
+          description: Love statuses with the label for each screen, in 3-card (`reading.ts`) order. `DailyCardsDocument.love_statuses` uses the daily order.
+          items:
+            $ref: "#/components/schemas/LoveStatus"
