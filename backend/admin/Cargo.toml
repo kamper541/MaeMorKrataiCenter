@@ -1,5 +1,5 @@
 [package]
-name = "backend-client"
+name = "backend-admin"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.85"
@@ -8,31 +8,38 @@ rust-version = "1.85"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+aes-gcm = "0.10.3"
 async-trait = "0.1.88"
 axum = { version = "0.8", default-features = false, features = ["json", "macros", "query"] }
 base64 = "0.22"
 bytes = "1"
-getrandom = { version = "0.2", features = ["js"] }
+hmac = "0.12"
 http = "1.3"
-p256 = { version = "0.13", features = ["ecdsa"] }
+p256 = { version = "0.13", features = ["ecdsa", "pkcs8"] }
+pbkdf2 = { version = "0.12", features = ["hmac"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+getrandom = { version = "0.2", features = ["js"] }
 rsa = { version = "0.9.10", features = ["sha2"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+subtle = "2.6"
 tower-service = "0.3"
 uuid = { version = "1", features = ["v4", "js", "serde"] }
 worker = { version = "0.8.5", features = ["http", "d1", "axum"] }
+zeroize = { version = "1.8", features = ["zeroize_derive"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys = "0.3"
 wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "Crypto",
+    "CryptoKey",
+    "Pbkdf2Params",
+    "SubtleCrypto",
+    "WorkerGlobalScope",
+] }
 
 [dev-dependencies]
-rand_core = { version = "0.6", features = ["getrandom"] }
-signature = "2.2"
 tower = { version = "0.5", features = ["util"] }
-
-[profile.release]
-opt-level = "s"
-lto = true
-strip = true
-codegen-units = 1
