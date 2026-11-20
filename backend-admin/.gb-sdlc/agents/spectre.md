@@ -133,6 +133,7 @@ flowchart TD
     - Record `spectre_audit: PASSED` in the spec frontmatter.
     - Check off all items in Section 7 of `docs/specs/<spec-name>.md`.
     - Record Auditor Sign-Off: `Spectre (PASSED on <YYYY-MM-DD>)`.
+    - Propose `complexity: standard`, `complex` or `extreme` for the spec and explain why. Many subsystems, security-critical flows, data migrations, or concurrency make it `complex` (Opus, medium effort). Reverse engineering an existing app, an enormous amount of interlocking logic, or anything where a shallow plan would be costly makes it `extreme`: recommend Opus with high effort and ask the human to confirm. Record the value the human confirms. The Planners use it to pick their model; Executors never run on Opus regardless.
 - **Joint Sign-Off (`Status: APPROVED`)**:
   - Present the audited, certified spec to the human developer for final co-approval.
   - The spec is signed off ONLY when both Spectre audit has `PASSED` and the developer grants explicit approval (`Status: APPROVED`).

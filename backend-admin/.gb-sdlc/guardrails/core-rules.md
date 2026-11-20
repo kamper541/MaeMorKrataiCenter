@@ -86,3 +86,35 @@
   - Before authoring specs (Spectre), breaking down plans (Planner), or executing task code (Executor / Coder), agents MUST inspect `.gb-sdlc/config.yaml` to identify all active built-in and linked skills.
   - If a skill's triggers or domain match the active task, the agent MUST load `.gb-sdlc/skills/<skill-name>/SKILL.md` and strictly follow its guidelines.
   - Agents MUST NOT invent conflicting conventions when an active project skill provides authoritative instructions.
+
+## 12. Explicit Model & Effort Routing (No Parent Inheritance)
+- Every spawned agent MUST be given an explicit `model` and `effort`. An agent never runs on the model of the session that spawned it, so a human chatting with an expensive model does not make the whole factory expensive.
+- Defaults live in `.gb-sdlc/config.yaml` under `models:`. Use the cheapest tier that can do the job reliably:
+  - Repo lookups and file finding: Haiku, low effort.
+  - Research, Battleground contenders, plan estimation, standard planning, plan audit, verification: Sonnet at medium to high effort.
+  - Planning a spec marked `complexity: complex`: Opus, medium effort. `extreme`: Opus, high effort, only after the human confirms.
+  - **Executors NEVER run on Opus.** Plans contain the complete code, so execution is mechanical: Sonnet medium by default, Haiku low for mechanical edits. If a task is too hard for Sonnet, the task is under-specified: the Planner or Plan Auditor splits it smaller or writes it out more explicitly. A bigger executor model is not an option.
+- **Escalation is suggested, never silent**, and applies to planners only. When a spec looks unusually hard (reverse engineering an existing app, very large branching logic, subtle concurrency, security-critical code), the agent that notices MUST tell the human, say why, and recommend a stronger planner.
+- The orchestrator (`/gb-execute`) MUST pass the task's `model` and `effort` when spawning its Executor. If a task file lacks them, use `models.executor`.
+
+## 13. Token Budget (Per Agent Session)
+- Target: a session sits around **200k tokens**. Above **300k** is classified as **over** (`token_budget` in `config.yaml`).
+- Work is sized to fit, not squeezed in:
+  - The **Plan Estimator** splits a spec into plans so one Planner session fits the target (rule 14).
+  - A task is sized so one Executor session fits well under the target (typically one concern, a handful of files).
+  - Agents read narrowly: use a Scout (Haiku) for lookups instead of reading large files or directories, read line ranges, never re-read what is already in context.
+- An agent that approaches 300k MUST stop expanding scope: write what is done and what is left into the plan folder and `HANDOFF.md`, report, and let a fresh agent continue. It never silently degrades.
+
+## 14. Plan Estimation, Parallel Planners & Plan Audit
+- After a spec is approved and audited, the **Plan Estimator** runs first. It sizes the spec and writes `docs/plans/<spec-name>-ESTIMATE.md`: how many plans, each plan's scope, rough token cost, dependencies between plans, and a **Shared Contract** (file paths, exported names, signatures, data shapes that more than one plan touches).
+- One **Planner** is then spawned per plan, in parallel where plans are independent. Each plans only its slice and writes code against the Shared Contract.
+- Planners run in parallel and coordinate only through the Shared Contract and `## Cross-Plan Assumptions` in each `00_OVERVIEW.md`; nothing blocks on another planner. Parallel planners do not write `HANDOFF.md` or `TODO.md`: the orchestrator and the Plan Auditor do (proto-spec candidates live in each overview until the auditor merges them).
+- Later plans often depend on code that does not exist yet. The **Plan Auditor** therefore runs last, reads every plan's interface ledger, and aligns all plans and tasks (names, signatures, ordering, file ownership, test harness, lint config), editing task files in place and writing `docs/plans/<spec-name>-PLAN-AUDIT.md`.
+- Execution MUST NOT start until the audit verdict is `ALIGNED` for the plan being run.
+
+## 15. Code Standards & Linters
+- All code follows one machine-enforced standard (`guardrails/code-standards.md`). Follow the project's existing linter/formatter; if none exists, the first plan creates the default for the stack from `config.yaml` `standards:` (JavaScript/TypeScript: Biome).
+- Standards live in `docs/knowledges/code-standards.md` and grow with every plan, preferably as lint rules.
+
+## 16. Test-First With a Harness
+- Tests and the test harness come before implementation in every task: harness, failing tests (red), implementation, passing tests (green). See `guardrails/testing-verification.md`.

@@ -8,7 +8,11 @@ You are the **Verifier & Security Auditor**. You stand as the quality gate betwe
 ### 1. Functional & Spec Verification
 - Verify that all acceptance criteria in `docs/specs/<spec>.md` pass.
 - Verify that all human decisions in `docs/decisions/D*.md` were respected.
-- Run the full test suite, linter, and type checker.
+- Run the full test suite, the code-standards check command (`docs/knowledges/code-standards.md`), and the type checker.
+
+### 1b. Test Harness & Standards Audit
+- The harness runs from a clean state with one command. Every acceptance criterion maps to at least one test, and failure/security cases are covered. Tests are not vacuous (read them; revert one change when cheap to confirm a test fails).
+- No lint suppressions or loosened strictness were introduced. New patterns are recorded in `docs/knowledges/code-standards.md`.
 
 ### 2. Mandatory OWASP Top 10 Security Audit
 Audit the codebase changes against:
@@ -27,6 +31,7 @@ Audit the codebase changes against:
 - **On PASS**:
   - Write `security-audit.md` in the plan directory.
   - Move the plan folder from `docs/plans/<plan-name>/` to `docs/plan-records/<plan-name>/`.
+  - If this was the last plan in `docs/plans/<spec-name>-PLAN-AUDIT.md` order, also move `<spec-name>-ESTIMATE.md` and `<spec-name>-PLAN-AUDIT.md` to `docs/plan-records/<spec-name>/`.
   - If any non-blocking security hardening or future refactoring ideas were noted during audit: log them to `TODO.md` as Proto-Specs.
   - Update `HANDOFF.md`:
     - Set `Project Status: IDLE (Verified)`.

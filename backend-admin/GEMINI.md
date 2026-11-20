@@ -62,7 +62,14 @@ All AI coding assistants working in this repository MUST obey the guardrails def
    - In-code `// TODO` placeholders are strictly forbidden in code and tasks.
    - Any enhancement, edge-case finding, or refactoring that is **worth not doing right now, but can be added later** MUST be logged into `TODO.md` as a **Proto-Spec**.
    - Spectre reviews `TODO.md` at the start of new cycles to graduate high-value proto-specs into formal specs.
-12. **Project Skills Awareness (`.gb-sdlc/skills/`)**:
+12. **Plan Estimate, Parallel Planners & Plan Audit**:
+   - After spec approval the Plan Estimator sizes the spec into plans (`docs/plans/<spec>-ESTIMATE.md`, with a Shared Contract). One Planner per plan, in parallel, coordinating only through the Shared Contract. A Plan Auditor then aligns all plans (`docs/plans/<spec>-PLAN-AUDIT.md`) and execution starts only on `ALIGNED`.
+   - Token budget per agent session: ~200k target, over at 300k. Size plans and tasks to fit; an agent nearing 300k saves state and hands off.
+   - Executors never run on Opus: plans carry full code, so a too-hard task is split or rewritten, not escalated.
+13. **Code Standards & Test-First Harness**:
+   - All code follows one machine-enforced standard (`.gb-sdlc/guardrails/code-standards.md`, `docs/knowledges/code-standards.md`). Follow the existing linter; if none, the first plan creates the stack default (JavaScript/TypeScript: Biome).
+   - Every task is test-first with the harness: harness, failing tests (red), implementation, passing tests (green), standards check.
+14. **Project Skills Awareness (`.gb-sdlc/skills/`)**:
    - Specialized domain instructions live in `.gb-sdlc/skills/<skill-name>/SKILL.md`.
    - Active skills are tracked in `.gb-sdlc/config.yaml` (`skills.built_in` and `skills.linked`).
    - Agents MUST inspect `config.yaml` and read relevant skills before planning or writing code.

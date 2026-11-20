@@ -3,6 +3,7 @@ id: SPEC-001
 title: "<Feature Name>"
 status: DRAFT # DRAFT | SPECTRE_REVIEW | APPROVED | IMPLEMENTING | COMPLETED
 spectre_audit: PENDING # PENDING | PASSED
+complexity: standard # standard | complex | extreme (picks the PLANNER model only: complex => Opus medium, extreme => Opus high; Spectre proposes at sign-off, human confirms. Executors never use Opus)
 created_at: "<YYYY-MM-DD>"
 updated_at: "<YYYY-MM-DD>"
 parent_spec: "" # Optional: If split from parent spec (e.g. SPEC-001)

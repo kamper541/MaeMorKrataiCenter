@@ -1,5 +1,5 @@
 # .gb-sdlc Configuration
-version: "1.2.0"
+version: "1.3.0"
 sdlc_model: "spec-driven-agentic"
 
 # Core Paths
@@ -40,9 +40,31 @@ skills:
 
 # Plan Conventions
 plan_conventions:
+  test_first_with_harness: true      # harness + failing tests before implementation
+  plan_audit_required: true          # plan-auditor aligns all plans before any execution
+  estimate_before_planning: true     # plan-estimator runs first and decides how many plans
   overview_task: "00_OVERVIEW.md"
   documentation_task: "NN_DOCUMENTATION.md"
   full_code_required: true
   executor_assumptions_allowed: false
   single_task_per_executor: true
   read_overview_first: true
+
+token_budget:
+  target: 200000      # healthy session
+  over: 300000        # 'over': stop, write state to HANDOFF.md, report, let a fresh agent continue
+
+
+standards:
+  typescript: "biome (lint+format) + tsc --strict"
+  javascript: "biome (lint+format)"
+  python: "ruff (lint+format) + pyright"
+  go: "gofmt + golangci-lint"
+  rust: "rustfmt + clippy (-D warnings)"
+  dart: "dart format + flutter_lints / analysis_options.yaml"
+  bash: "shellcheck + shfmt"
+  java: "spotless + checkstyle"
+  kotlin: "ktlint"
+  php: "laravel/pint + phpstan"
+  ruby: "rubocop"
+

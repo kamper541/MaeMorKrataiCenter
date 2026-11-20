@@ -5,6 +5,8 @@ Execute tasks with zero improvisation, strict single-task agent isolation (1 tas
 
 ## Step-by-Step Flow
 
+0. **Precondition**: `docs/plans/<spec-name>-PLAN-AUDIT.md` has verdict `ALIGNED`. Run plans and tasks in its global execution order. Executors run on Sonnet or Haiku only, never Opus.
+
 1. **Spawn Fresh Executor / Coder Agent (1 Agent per Task)**:
    - For the next uncompleted task in `docs/plans/<plan-name>/`, instantiate a fresh, isolated **Executor / Coder** agent.
    - **Strict Rule**: 1 Executor / Coder agent executes strictly 1 task. Never reuse an agent session across multiple tasks.
@@ -17,12 +19,12 @@ Execute tasks with zero improvisation, strict single-task agent isolation (1 tas
    - The agent opens the single assigned task file (e.g., `01_<TASK>.md`).
    - Applies the exact file creations, modifications, and shell commands without improvisation.
    - **No in-code `// TODO`**: If non-blocking ideas or secondary improvements are uncovered, log them to `TODO.md` as Proto-Specs.
-   - Runs the task's verification command.
+   - Follows the task order: harness, tests, red (must fail as stated), implementation, green, code-standards check. Runs the task's verification commands.
 
 4. **Deviation Escalation Protocol**:
    - If commands or code fail, or existing code conflicts with task instructions:
    - **DO NOT GUESS OR IMPROVISE.**
-   - Spawn a resolution subagent with the Spec, `docs/decisions/`, and `00_OVERVIEW.md`.
+   - A task that is too hard is never fixed with a stronger model; the Planner splits or rewrites it. Spawn a resolution subagent with the Spec, `docs/decisions/`, and `00_OVERVIEW.md`.
    - If multiple fixes exist, run a task-level Battleground in `docs/battlegrounds/<plan-name>/<task-name>/`.
    - Apply the resolved code and re-verify.
 
