@@ -28,6 +28,8 @@
 | `TODO-004` | Customer Orders, Credits Ledger & Payment Webhooks | Medium | PROPOSED | SPEC-001 Scoping | - |
 | `TODO-005` | Customer Accounts, Auth & Saved Reading History | Medium | PROPOSED | SPEC-001 Scoping | - |
 | `TODO-006` | Infra Hardening: Clippy Cast Cleanup, HTTPS URL Guard & Structured Audit Logs | Low | PROPOSED | SPEC-001 Security Audit | - |
+| `TODO-010` | Pagination for Public Master-Data List Endpoints | Low | PROPOSED | SPEC-002 Scoping | - |
+| `TODO-011` | Cache Invalidation on Admin Edit for Public Master Data | Medium | PROPOSED | SPEC-002 Scoping | - |
 
 ---
 
@@ -112,6 +114,34 @@
   - Emit structured, PII/token-redacted security audit logs for `401`/`403`/`429`/`503` responses.
 - **Graduation / Promotion Criteria**:
   - Fold into `SPEC-002` or a dedicated hardening pass.
+
+### [TODO-010] Pagination for Public Master-Data List Endpoints
+- **Status**: `PROPOSED`
+- **Discovered On**: 2026-11-20
+- **Discovered By / During**: `SPEC-002` scoping (Spectre)
+- **Priority**: `P3 (Low)`
+- **Why Not Now?**: `SPEC-002` mirrors today's frontend JSON shapes (78 cards) and relies on backend caching; the developer deferred pagination.
+- **Context & Problem Statement**:
+  The card list and daily-content list are returned whole. As content grows, the frontend may want to lazy-load pages instead of one large response.
+- **Proto-Spec Sketch (Suggested Approach)**:
+  - Add optional pagination parameters (offset or cursor, to be decided) to the card list and daily-content list, keeping the unpaginated response backward compatible.
+  - Make cache keys include the pagination parameters.
+- **Graduation / Promotion Criteria**:
+  - When the frontend asks for lazy loading, or a list response becomes noticeably slow or large.
+
+### [TODO-011] Cache Invalidation on Admin Edit for Public Master Data
+- **Status**: `PROPOSED`
+- **Discovered On**: 2026-11-21
+- **Discovered By / During**: `SPEC-002` scoping (Spectre + Researcher)
+- **Priority**: `P2 (Medium)`
+- **Why Not Now?**: `SPEC-002` ships a plain 10-minute TTL (`Cache-Control: public, max-age=600`). Admin edits may take up to 10 minutes to reach customers, which the developer accepted for now.
+- **Context & Problem Statement**:
+  `admin` and `client` are separate Workers on `*.workers.dev`. `caches.default` is a no-op there and per-colo anyway; KV propagates in 60 s or more. Research: [docs/researches/2026-11-20-workers-cache-invalidation.md](docs/researches/2026-11-20-workers-cache-invalidation.md).
+- **Proto-Spec Sketch (Suggested Approach)**:
+  - Option A: `content_version` row in D1 bumped in the same `batch()` as every admin write; client returns `ETag` + `Cache-Control: no-cache` and answers `304` on match. Immediate invalidation, Free plan, one small D1 read per request.
+  - Option B (upgrade): Workers Cache on `client` + admin-to-client purge over a service binding authenticated by JWT. Needs a workers-rs spike.
+- **Graduation / Promotion Criteria**:
+  - When 10-minute staleness becomes a problem for the reader/owner, or a custom domain is attached.
 
 ---
 

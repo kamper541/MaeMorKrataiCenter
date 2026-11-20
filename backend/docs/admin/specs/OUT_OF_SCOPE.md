@@ -13,6 +13,7 @@ It serves as seed context for future Spectre spec sessions or for graduating int
   - **Reason for Deferral**: Deliberately split from `SPEC-001` so the foundational Rust Worker + D1 + R2 + Auth + Security scaffold is verified cleanly first.
   - **Captured Context**: Migrate `daily-cards.json` (78 cards), `reading-cards.json` (78 cards), and `v3/manifest.json` (74 cards) into D1 tables, publish `v3/*.webp` into `PUBLIC_ASSETS` R2, and expose admin card update endpoints (e.g. updating card descriptions) with RBAC.
   - **Recommended Action**: Graduate immediately as **`SPEC-002`** after `SPEC-001` completes.
+  - **Status (2026-11-21)**: `GRADUATED` into [docs/specs/SPEC-002-master-data-to-backend.md](../../specs/SPEC-002-master-data-to-backend.md) (data only; R2 card art and server-side daily draw stay deferred).
 
 - **Item**: AI LLM Chat, RAG Database & Agentic Tool Calling
   - **Reason for Deferral**: Non-core to infrastructure scaffold; requires separate RAG/vector store, prompt guardrails, and spend caps design.

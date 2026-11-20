@@ -2,6 +2,16 @@
 
 > Merged from the former `backend-client` and `backend-admin` repos. Each part below keeps its own IDs (TODO IDs may collide across parts); docs live in `docs/client/` and `docs/admin/`.
 
+## Current State (both services) — 2026-11-21
+
+- **Project Status**: `PLANNING`
+- **Active Spec**: [docs/specs/SPEC-002-master-data-to-backend.md](docs/specs/SPEC-002-master-data-to-backend.md). One spec for both services. `status: APPROVED`, `spectre_audit: PASSED` (3 audit rounds), `complexity: complex`.
+- **New shared locations** (from SPEC-002 on): `docs/specs/`, `docs/decisions/` (D05–D10), `docs/researches/`, `docs/knowledges/actors-and-roles.md`. D01–D04 stay in `docs/admin|client/decisions/`.
+- **API contracts** v0.2.0 (need frontend review in a PR): `../docs/api/client/openapi.yaml` (public read-only GETs, 10-min cache) and `../docs/api/admin/openapi.yaml` (admin CRUD, 36 operations).
+- **New proto-specs**: `TODO-010` pagination, `TODO-011` cache invalidation (client section of `TODO.md`).
+- **Immediate Next Steps**:
+  1. Open the contract PR for frontend review; notify frontend of English keys (D08), nullable love-status texts and uncategorized lists (D09, D10).
+  2. Run `/gb-plan` for SPEC-002 (Opus planners, `complexity: complex`).
 
 ---
 
