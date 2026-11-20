@@ -1,33 +1,90 @@
-.PHONY: check test build-client build-admin dev-client dev-admin migrate-local migrate-staging migrate-prod create-user
+# Backend task runner. This Makefile is the single entry point for every backend command.
+# Run `make` or `make help` to list targets. Full guideline: docs/deployment.md
+#
+# Conventions
+#   ENV      environment name: dev | staging | prod   (cf-* and create-user targets)
+#   SERVICE  admin | client                           (cf-secret)
+#   NAME     secret name                              (cf-secret)
+# Targets marked [CLOUD] change real Cloudflare state; they confirm first.
 
-check:
+.DEFAULT_GOAL := help
+SHELL := /bin/bash
+
+.PHONY: help check test build-admin build-client dev-admin dev-client \
+	migrate-local migrate-staging migrate-prod create-user \
+	cf-whoami cf-bootstrap cf-secret cf-dry-run deploy-staging deploy-prod
+
+help: ## List all targets
+	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+# ---- Verify & build ---------------------------------------------------------
+
+check: ## Type-check Workers for wasm32
 	cargo check --workspace --exclude create-user --target wasm32-unknown-unknown
 
-test:
+test: ## Run all tests
 	cargo test --workspace
 
-build-client:
-	cd client && worker-build --release
-
-build-admin:
+build-admin: ## Build the admin Worker bundle
 	cd admin && worker-build --release
 
-dev-client:
-	cd client && npx wrangler dev
+build-client: ## Build the client Worker bundle
+	cd client && worker-build --release
 
-dev-admin:
+# ---- Local dev --------------------------------------------------------------
+
+dev-admin: ## Run admin Worker locally (wrangler dev)
 	cd admin && npx wrangler dev
 
+dev-client: ## Run client Worker locally (wrangler dev)
+	cd client && npx wrangler dev
+
 # Migrations are shared (../migrations) and applied through the admin worker's D1 binding.
-migrate-local:
+migrate-local: ## Apply D1 migrations to local state
 	cd admin && npx wrangler d1 migrations apply DB --local
 
-migrate-staging:
+migrate-staging: ## [CLOUD] Apply D1 migrations to staging
 	cd admin && npx wrangler d1 migrations apply DB --env staging --remote
 
-migrate-prod:
+migrate-prod: ## [CLOUD] Apply D1 migrations to prod
 	cd admin && npx wrangler d1 migrations apply DB --env prod --remote
 
-# Usage: make create-user EMAIL=owner@maemorkratai.com ROLE=owner ENV=dev
-create-user:
+create-user: ## Create a user. Usage: make create-user EMAIL=a@b.com ROLE=owner ENV=dev
 	cargo run --manifest-path tools/create-user/Cargo.toml -- --email=$(EMAIL) --role=$(ROLE) --env=$(or $(ENV),dev)
+
+# ---- Cloudflare setup & deploy ---------------------------------------------
+
+cf-whoami: ## Show the logged-in Cloudflare account (login first: npx wrangler login)
+	cd admin && npx wrangler whoami
+
+cf-bootstrap: ## [CLOUD] One-time: create D1 + R2 for ENV=staging|prod
+	@case "$(ENV)" in staging|prod) ;; *) echo "usage: make cf-bootstrap ENV=staging|prod"; exit 2;; esac
+	@cd admin && npx wrangler whoami
+	@read -r -p "Create D1 + R2 resources for '$(ENV)' in the account above? [y/N] " ok; \
+		[[ "$$ok" == "y" || "$$ok" == "Y" ]] || { echo aborted; exit 1; }
+	cd admin && npx wrangler d1 create maemorkratai-db-$(ENV)
+	cd admin && npx wrangler r2 bucket create maemorkratai-public-$(ENV)
+	cd admin && npx wrangler r2 bucket create maemorkratai-private-$(ENV)
+	@echo
+	@echo "Next: paste the printed D1 database_id into admin/wrangler.toml and client/wrangler.toml (env.$(ENV)),"
+	@echo "then: make cf-secret (see docs/deployment.md), make migrate-$(ENV), make deploy-$(ENV)."
+
+cf-secret: ## [CLOUD] Set a Worker secret. Usage: make cf-secret SERVICE=admin NAME=PASSWORD_PEPPER ENV=staging
+	@case "$(SERVICE)" in admin|client) ;; *) echo "usage: make cf-secret SERVICE=admin|client NAME=<SECRET> ENV=staging|prod"; exit 2;; esac
+	@test -n "$(NAME)" || { echo "NAME is required"; exit 2; }
+	@case "$(ENV)" in staging|prod) ;; *) echo "ENV must be staging or prod"; exit 2;; esac
+	cd $(SERVICE) && npx wrangler secret put $(NAME) --env $(ENV)
+
+cf-dry-run: ## Bundle both Workers for ENV=staging|prod without deploying (needs no changes in Cloudflare)
+	@case "$(ENV)" in staging|prod) ;; *) echo "usage: make cf-dry-run ENV=staging|prod"; exit 2;; esac
+	cd admin && npx wrangler deploy --dry-run --env $(ENV) --outdir ../.dry-run/admin-$(ENV)
+	cd client && npx wrangler deploy --dry-run --env $(ENV) --outdir ../.dry-run/client-$(ENV)
+
+# Manual deploys (CI uses .github/workflows/backend-deploy.yml). Admin first: it serves the JWKS.
+deploy-staging: ## [CLOUD] Deploy admin then client to staging
+	cd admin && npx wrangler deploy --env staging
+	cd client && npx wrangler deploy --env staging
+
+deploy-prod: ## [CLOUD] Deploy admin then client to prod
+	cd admin && npx wrangler deploy --env prod
+	cd client && npx wrangler deploy --env prod

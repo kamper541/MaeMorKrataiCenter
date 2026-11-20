@@ -1,0 +1,74 @@
+name: backend-deploy
+
+# Manual only for now. Add a `push: branches: [main]` trigger for staging once the
+# Cloudflare resources exist and the secrets below are configured.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, prod]
+        default: staging
+      migrate:
+        description: Apply D1 migrations before deploying
+        type: boolean
+        default: true
+
+concurrency:
+  group: backend-deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Configure required reviewers on the `prod` GitHub Environment for a manual approval gate.
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test before deploy
+        run: cargo test --workspace --locked
+
+      - name: Install worker-build
+        run: cargo install worker-build --locked
+
+      - name: Install wrangler
+        run: npm install --no-save wrangler@^4
+
+      - name: Apply D1 migrations
+        if: ${{ inputs.migrate }}
+        working-directory: backend/admin
+        run: npx wrangler d1 migrations apply DB --env ${{ inputs.environment }} --remote
+
+      # Admin first: it publishes the JWKS that the client Worker verifies against.
+      - name: Deploy admin Worker
+        working-directory: backend/admin
+        run: npx wrangler deploy --env ${{ inputs.environment }}
+
+      - name: Deploy client Worker
+        working-directory: backend/client
+        run: npx wrangler deploy --env ${{ inputs.environment }}
