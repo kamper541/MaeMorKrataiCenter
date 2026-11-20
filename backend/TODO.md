@@ -309,3 +309,19 @@
 
 *(No proto-specs graduated yet.)*
 
+
+
+---
+
+<!-- ===== deployment ===== -->
+
+### [TODO-007] Cloudflare Ingestion Pipeline (needs spec)
+- **Status**: `PROPOSED`
+- **Discovered On**: 2026-11-20
+- **Discovered By / During**: Cloudflare deployment prep (worktree `backend-cloudflare-deploy`)
+- **Priority**: `P2 (Medium)`
+- **Why Not Now?**: No ingestion pipeline exists in the repo and its shape is an architecture decision (Spectre zero-assumption). Scope is not yet defined.
+- **Context & Problem Statement**:
+  Deployment prep was requested "with ingestion". Candidates: R2 `PRIVATE_STORAGE` upload event -> Queue -> consumer Worker; or RAG/knowledge-release ingestion (see TODO-002).
+- **Graduation / Promotion Criteria**:
+  Developer confirms ingestion scope; Spectre drafts a spec and logs the decision.

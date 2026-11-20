@@ -1,0 +1,92 @@
+name: backend-ci
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-*.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-*.yml"
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: backend
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Cargo check (wasm32, workers only)
+        run: cargo check --workspace --exclude create-user --target wasm32-unknown-unknown --locked
+
+      - name: Cargo test
+        run: cargo test --workspace --locked
+
+      # Advisory until TODO-006 (clippy cast cleanup) lands and the tree is formatted.
+      - name: Rustfmt (advisory)
+        continue-on-error: true
+        run: cargo fmt --all --check
+
+      - name: Clippy (advisory)
+        continue-on-error: true
+        run: cargo clippy --workspace --exclude create-user --target wasm32-unknown-unknown --locked -- -D warnings
+
+  wrangler-dry-run:
+    # Proves both Workers bundle and that wrangler configs parse, without deploying or needing Cloudflare credentials.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: check-and-test
+    strategy:
+      matrix:
+        service: [admin, client]
+        env: [staging, prod]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install worker-build
+        run: cargo install worker-build --locked
+
+      - name: Install wrangler
+        working-directory: backend/${{ matrix.service }}
+        run: npm install --no-save wrangler@^4
+
+      - name: Wrangler deploy --dry-run
+        working-directory: backend/${{ matrix.service }}
+        run: npx wrangler deploy --dry-run --env ${{ matrix.env }} --outdir ../.dry-run/${{ matrix.service }}-${{ matrix.env }}
