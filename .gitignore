@@ -11,3 +11,5 @@ __pycache__/
 
 # Personal Claude Code instructions (backend dev only)
 CLAUDE.local.md
+.claude/worktrees/
+.claude/settings.local.json
