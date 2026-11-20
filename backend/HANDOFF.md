@@ -164,3 +164,15 @@ Ready for next feature spec session with Spectre:
 - **Researches & Spikes**: [docs/researches/](docs/admin/researches/)
 - **Completed Plan Records**: [docs/plan-records/](docs/admin/plan-records/) ([SPEC-001-infra-scaffold](docs/admin/plan-records/SPEC-001-infra-scaffold/00_OVERVIEW.md) | [security-audit.md](docs/admin/plan-records/SPEC-001-infra-scaffold/security-audit.md))
 
+
+
+---
+
+<!-- ===== deployment prep (2026-11-20, worktree backend-cloudflare-deploy) ===== -->
+
+## Cloudflare Deployment Prep
+
+- **Done**: `.github/workflows/backend-ci.yml`, `.github/workflows/backend-deploy.yml` (manual only), `docs/deployment.md` (command guideline), and Makefile targets `cf-whoami`, `cf-bootstrap`, `cf-secret`, `cf-dry-run`, `deploy-*` (Makefile is the only command entry point; no loose scripts). Cloudflare plugin installed for Claude Code; wrangler logged in locally.
+- **NOT done / nothing deployed**: no D1/R2 created, `database_id`s in both `wrangler.toml` are placeholders, no secrets set, no routes/domains, GitHub secrets not configured.
+- **Open**: ingestion scope undecided (`TODO-007`). Rustfmt and clippy fail on existing code (`TODO-006`), so they are advisory in CI.
+- **Next**: follow `docs/deployment.md` one-time setup, then trigger `backend-deploy` for staging.
