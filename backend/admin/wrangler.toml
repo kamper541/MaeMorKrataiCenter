@@ -1,7 +1,7 @@
 name = "maemorkratai-backend-admin-dev"
 main = "build/worker/shim.mjs"
 compatibility_date = "2026-11-01"
-migrations_dir = "migrations"
+migrations_dir = "../migrations"
 
 [build]
 command = "worker-build --release"
@@ -20,7 +20,7 @@ MAX_BODY_BYTES = "65536"
 binding = "DB"
 database_name = "maemorkratai-db-dev"
 database_id = "00000000-0000-0000-0000-000000000001"
-migrations_dir = "migrations"
+migrations_dir = "../migrations"
 
 [[r2_buckets]]
 binding = "PUBLIC_ASSETS"
@@ -52,7 +52,7 @@ MAX_BODY_BYTES = "65536"
 binding = "DB"
 database_name = "maemorkratai-db-staging"
 database_id = "00000000-0000-0000-0000-000000000002"
-migrations_dir = "migrations"
+migrations_dir = "../migrations"
 
 [[env.staging.r2_buckets]]
 binding = "PUBLIC_ASSETS"
@@ -84,7 +84,7 @@ MAX_BODY_BYTES = "65536"
 binding = "DB"
 database_name = "maemorkratai-db-prod"
 database_id = "00000000-0000-0000-0000-000000000003"
-migrations_dir = "migrations"
+migrations_dir = "../migrations"
 
 [[env.prod.r2_buckets]]
 binding = "PUBLIC_ASSETS"

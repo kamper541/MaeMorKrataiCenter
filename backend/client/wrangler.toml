@@ -14,7 +14,7 @@ JWKS_URL = "http://127.0.0.1:8787/.well-known/jwks.json"
 JWT_ISSUER = "https://admin-api.local.maemorkratai.test"
 JWT_AUDIENCE = "maemorkratai-client"
 
-# Canonical D1 migrations are owned by ../backend-admin/migrations/ (D01).
+# Canonical D1 migrations are shared in ../migrations/ (D01).
 [[d1_databases]]
 binding = "DB"
 database_name = "maemorkratai-db-dev"
